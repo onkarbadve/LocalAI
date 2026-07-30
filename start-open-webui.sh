@@ -1,4 +1,22 @@
 #!/usr/bin/env bash
+#
+# Purpose: start (or create, on first run) the Open WebUI chat frontend as a
+#   rootless Podman container, pointed at the local llama-server instance(s).
+# Requires: Podman (rootless); network access to pull
+#   ghcr.io/open-webui/open-webui:main on first run; a llama-server instance
+#   already running on 127.0.0.1:8080 and/or :8081 for chat to actually work
+#   (this script will still start Open WebUI itself without one running).
+# Arguments: none.
+# Expected output: prints the container name/URL and exits (0) if already
+#   running; otherwise creates/starts the container and prints its status.
+#   Once up, http://localhost:3000 serves the UI (first visit creates the
+#   local admin account).
+# Typical usage: ./start-open-webui.sh   (idempotent - safe to rerun any time)
+# Failure cases: `podman` not installed/rootless not configured; image pull
+#   fails with no network; port 3000 already in use by something else on the
+#   host (this script uses --network host, so it binds directly to the host's
+#   port 3000, not a container-only port).
+#
 # Open WebUI - chat frontend for the local llama.cpp server.
 # Runs as a rootless Podman container.
 #

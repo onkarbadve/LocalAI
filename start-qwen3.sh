@@ -1,4 +1,22 @@
 #!/usr/bin/env bash
+#
+# Purpose: launch the production llama-server instance (Qwen3-4B-Instruct-2507)
+#   for chat/coding/agent-mode use, OpenAI-compatible API on port 8080.
+# Requires: llama.cpp built from source with the Vulkan backend at
+#   $HOME/LocalAI/llama.cpp/build/bin/llama-server; the GGUF at
+#   $HOME/LocalAI/models/Qwen3-4B-Instruct-2507-UD-Q4_K_XL.gguf (see SETUP.md);
+#   an Intel iGPU (or other Vulkan device) visible to the process.
+# Arguments: none. Model path, port, and all sampling/runtime flags are fixed
+#   below - edit the script directly to change them.
+# Expected output: runs in the foreground (via `exec`) logging llama-server's
+#   own startup/request logs; binds 127.0.0.1:8080 once ready; GET /health
+#   returns `{"status":"ok"}` when the server is up.
+# Typical usage: ./start-qwen3.sh   (then point Open WebUI or curl at :8080)
+# Failure cases: fails fast if the binary or model file is missing (bad path);
+#   fails to bind if start-gemma-e4b.sh (same port 8080) is already running -
+#   stop it first with `pkill -f llama-server`; see docs/troubleshooting.md
+#   for runaway-generation / hung-response / GPU fence-timeout failure modes.
+#
 # Qwen3-4B-Instruct-2507 (Unsloth Dynamic Q4_K_XL) - chat/general use
 # Ported from the tuned Windows setup (C:\LocalAI\Start-Server.bat) to Linux/Vulkan.
 #

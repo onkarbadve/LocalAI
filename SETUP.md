@@ -2,6 +2,8 @@
 
 Dual-OS (Windows + Fedora) local LLM serving via llama.cpp, GPU-accelerated on an integrated GPU with no discrete card. Windows setup (`C:\LocalAI`) came first; Fedora (`~/LocalAI`) is the current daily driver, ported from it.
 
+This is the full flag-by-flag reference. For narrower, topic-specific docs, see [`docs/`](docs/): [architecture](docs/architecture.md), [hardware](docs/hardware.md), [models](docs/models.md), [benchmarks](docs/benchmarks.md), [troubleshooting](docs/troubleshooting.md), [lessons learned](docs/lessons-learned.md). For the dated history behind every decision here, see [`JOURNAL.md`](JOURNAL.md).
+
 ## Hardware / OS
 
 | | |
@@ -175,6 +177,8 @@ Not yet ported to Fedora.
 
 ## Issues encountered and resolutions
 
+Narrative account below, in the order encountered. For the same issues in a scannable Problem/Cause/Solution/Verification format, see [`docs/troubleshooting.md`](docs/troubleshooting.md).
+
 ### 1. Qwen3.5-4B multi-turn caching bug → switched models
 Qwen3.5-4B's hybrid attention + Mamba2/SSM architecture hit an upstream llama.cpp bug: `cached_tokens` stuck at 82 regardless of turn number on multi-turn requests (`ggml-org/llama.cpp#21831`, open/unresolved as of build b10107, 2026-07-24). It's a checkpoint-*restore-selection* bug, not a checkpoint-frequency one, so `-cpent`/`-ctxcp` tuning didn't help. **Resolution**: switched to dense Qwen3-4B-Instruct-2507, which has no recurrent memory and isn't subject to the bug (2026-07-26).
 
@@ -211,6 +215,8 @@ Side effect encountered while debugging: killing a stuck llama-server mid-genera
 Both single-server scripts bind port 8080 by design — running Qwen and Gemma simultaneously isn't supported as-is on either OS. **Workaround**: `pkill -f llama-server` (Linux) / close the other server window (Windows) before switching.
 
 ## Verified performance notes
+
+See [`docs/benchmarks.md`](docs/benchmarks.md) for the fuller table (multi-turn cache reuse, agent-mode round-trip timings) built from these same numbers.
 
 - Both models: ~9-9.8 tok/s generation on the iGPU, on both OSes.
 - Cold start (fresh boot, one-time Vulkan shader compilation):

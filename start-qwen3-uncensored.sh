@@ -1,4 +1,23 @@
 #!/usr/bin/env bash
+#
+# Purpose: launch the secondary, uncensored/blunt-mode llama-server instance
+#   (Qwen3-4B-Instruct-2507-heretic-av2) on port 8081. Not the production
+#   agent-mode server - that's start-qwen3.sh.
+# Requires: llama.cpp built from source with the Vulkan backend at
+#   $HOME/LocalAI/llama.cpp/build/bin/llama-server; the GGUF at
+#   $HOME/LocalAI/models/Qwen3-4B-Instruct-2507-heretic-av2.Q4_K_M.gguf
+#   (see SETUP.md for source); an Intel iGPU (or other Vulkan device).
+# Arguments: none. Edit the script directly to change model path, port, or
+#   sampling/runtime flags.
+# Expected output: runs in the foreground (via `exec`); binds
+#   127.0.0.1:8081 once ready; GET /health returns `{"status":"ok"}`.
+# Typical usage: ./start-qwen3-uncensored.sh   (register alongside :8080 in
+#   Open WebUI - both connections stay configured, only one process need run)
+# Failure cases: fails fast on a missing binary/model path; run mutually
+#   exclusive with start-qwen3.sh at their current context sizes - combined
+#   Vulkan memory does not fit both (see SETUP.md); see docs/troubleshooting.md
+#   for repetition-loop and GPU fence-timeout failure modes.
+#
 # Qwen3-4B-Instruct-2507-heretic-av2 (arnomatic, abliterated via Heretic v1.1.0,
 # GGUF by mradermacher) - separate/secondary "blunt, unfiltered" chat model.
 # Not the production agent-mode server (that's start-qwen3.sh) - deliberately
