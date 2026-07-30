@@ -2,7 +2,7 @@
 
 Dual-OS (Windows + Fedora) local LLM serving via llama.cpp, GPU-accelerated on an integrated GPU with no discrete card. Windows setup (`C:\LocalAI`) came first; Fedora (`~/LocalAI`) is the current daily driver, ported from it.
 
-This is the full flag-by-flag reference. For narrower, topic-specific docs, see [`docs/`](docs/): [architecture](docs/architecture.md), [hardware](docs/hardware.md), [models](docs/models.md), [benchmarks](docs/benchmarks.md), [troubleshooting](docs/troubleshooting.md), [lessons learned](docs/lessons-learned.md). For the dated history behind every decision here, see [`JOURNAL.md`](JOURNAL.md).
+This is the full flag-by-flag reference. For narrower, topic-specific docs, see [`docs/`](docs/): [architecture](docs/architecture.md), [hardware](docs/hardware.md), [models](docs/models.md), [benchmarks](docs/benchmarks.md), [troubleshooting](docs/troubleshooting.md), [lessons learned](docs/lessons-learned.md), [roadmap](docs/roadmap.md). For the dated history behind every decision here, see [`JOURNAL.md`](JOURNAL.md), or [`adr/`](adr/) for the same decisions distilled into stable records.
 
 ## Hardware / OS
 

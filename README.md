@@ -24,6 +24,21 @@ No discrete GPU, no cloud API, no subscription — a 16GB laptop with an Intel i
 
 This repo is both a working setup and its own documentation: every bug, workaround, and dead end along the way is logged in [`JOURNAL.md`](JOURNAL.md), and the polished, structured version of that history lives in [`docs/`](docs/).
 
+## Who is this repository for?
+
+**Suitable for:**
+- Developers running local models on Intel integrated graphics (no discrete GPU)
+- `llama.cpp` users looking for real Vulkan-backend flags and gotchas, not just defaults
+- Open WebUI users wiring up agent-mode tool-calling or the Open Terminal integration
+- Anyone learning local AI serving from a documented, working end-to-end setup
+- Self-hosted AI enthusiasts wanting remote access (Tailscale) without exposing anything publicly
+
+**Not intended for:**
+- CUDA-specific optimization (there is no discrete NVIDIA GPU anywhere in this setup)
+- Multi-GPU inference or tensor-parallel serving
+- Enterprise AI infrastructure or multi-tenant deployment
+- Distributed/clustered serving across multiple machines
+
 ## Features
 
 - **Zero cloud dependency** — every model runs locally on integrated graphics, nothing leaves the machine.
@@ -36,31 +51,17 @@ This repo is both a working setup and its own documentation: every bug, workarou
 ## Architecture
 
 ```mermaid
-flowchart LR
-    subgraph Remote["📱 Remote device"]
-        Phone[Phone / laptop]
-    end
-
-    subgraph Tailnet["🔒 Tailscale VPN overlay"]
-        Phone -.->|MagicDNS / tailnet IP| WebUI
-    end
-
-    subgraph Fedora["🖥️ Fedora box — daily driver"]
-        WebUI["Open WebUI<br/>:3000 (Podman, host network)"]
-        Term["Open Terminal<br/>:8000 (Podman, loopback only)"]
-        Qwen["llama-server: Qwen3-4B<br/>:8080 (production)"]
-        QwenU["llama-server: Qwen3-4B abliterated<br/>:8081 (blunt/direct, mutually exclusive)"]
-
-        WebUI -->|OpenAI-compatible API| Qwen
-        WebUI -->|OpenAI-compatible API| QwenU
-        WebUI -->|Integration| Term
-    end
-
-    Qwen -->|Vulkan| GPU["Intel Iris Xe iGPU"]
-    QwenU -->|Vulkan| GPU
+flowchart TD
+    Laptop["Laptop<br/>Intel iGPU, no discrete GPU"] --> Server["llama-server<br/>(llama.cpp, Vulkan backend)"]
+    Server --> API["OpenAI-compatible API"]
+    API --> WebUI["Open WebUI"]
+    WebUI --> Tools["Builtin Tools"]
+    WebUI --> Term["Open Terminal"]
+    WebUI --> TS["Tailscale"]
+    TS --> Remote["Browser / Mobile"]
 ```
 
-Full component breakdown and design rationale: [`docs/architecture.md`](docs/architecture.md). Hardware specs: [`docs/hardware.md`](docs/hardware.md).
+This is the simplified shape of it. For the full diagram — both `llama-server` ports, container networking, and why the two chat models run mutually exclusively — see [`docs/architecture.md`](docs/architecture.md). Hardware specs: [`docs/hardware.md`](docs/hardware.md).
 
 ## Quick Start
 
@@ -82,7 +83,7 @@ Models aren't checked into this repo (multi-GB GGUF files). Building `llama.cpp`
 
 ## Repository Structure
 
-```
+```text
 LocalAI/
 ├── llama.cpp/                    # upstream checkout, built from source (Vulkan) — gitignored, see docs/hardware.md
 ├── models/                       # GGUF weights — gitignored, multi-GB binaries, see docs/hardware.md
@@ -91,10 +92,11 @@ LocalAI/
 ├── start-gemma-e4b.sh            # vision chat (deprioritized)
 ├── start-open-webui.sh           # Open WebUI, rootless Podman
 ├── start-open-terminal.sh        # shell/file API for the models, rootless Podman
-├── docs/                         # topic-specific reference docs (see Documentation below)
-├── screenshots/                  # UI screenshots (placeholders until captured)
+├── docs/                         # topic-specific reference docs and screenshots (see Documentation below)
+├── adr/                          # architecture decision records — stable decisions, not chronological history
 ├── SETUP.md                      # hardware, flags, models, full technical reference
 ├── JOURNAL.md                    # dated log of every change, fix, and incident
+├── CHANGELOG.md                  # version history of this repository
 ├── AGENTS.md                     # conventions for AI coding agents working in this repo
 └── linkedin-post.md              # write-up of the Windows → Linux port
 ```
@@ -103,13 +105,15 @@ LocalAI/
 
 ## Screenshots
 
-Not yet captured — placeholders and capture checklist in [`screenshots/`](screenshots/):
+Not yet captured — placeholders below and capture checklist in [`docs/images/`](docs/images/). Replace the files in place as real screenshots are taken.
 
-- Open WebUI homepage
-- Model selection
-- Chat interface
-- Mobile access through Tailscale
-- Terminal integration
+| Open WebUI home | Chat interface | Model selection |
+|:---:|:---:|:---:|
+| ![Open WebUI homepage placeholder](docs/images/openwebui-home.png) | ![Chat interface placeholder](docs/images/chat.png) | ![Model selection placeholder](docs/images/model-selection.png) |
+
+| Mobile access (Tailscale) | Open Terminal integration |
+|:---:|:---:|
+| ![Mobile access placeholder](docs/images/mobile.png) | ![Open Terminal integration placeholder](docs/images/open-terminal.png) |
 
 ## Benchmarks
 
@@ -131,8 +135,11 @@ Full numbers, multi-turn cache-reuse data, and agent-mode round-trip timings: [`
 | [`docs/models.md`](docs/models.md) | Every model tested, compared side by side |
 | [`docs/benchmarks.md`](docs/benchmarks.md) | Full performance numbers |
 | [`docs/troubleshooting.md`](docs/troubleshooting.md) | Structured Problem/Cause/Solution/Verification writeups |
-| [`docs/lessons-learned.md`](docs/lessons-learned.md) | Practical conclusions from real experimentation |
-| [`JOURNAL.md`](JOURNAL.md) | Dated running log — newest entries first |
+| [`docs/lessons-learned.md`](docs/lessons-learned.md) | Practical conclusions from real experimentation, by topic |
+| [`docs/roadmap.md`](docs/roadmap.md) | Completed / upcoming / future-idea work, in more detail than below |
+| [`adr/`](adr/) | Architecture Decision Records — why the stable, load-bearing choices were made |
+| [`JOURNAL.md`](JOURNAL.md) | Dated running log — newest entries first, the historical source of truth |
+| [`CHANGELOG.md`](CHANGELOG.md) | Version history of this repository itself |
 | [`AGENTS.md`](AGENTS.md) | Conventions for AI coding agents working in this repo |
 | [`llama.cpp/AGENTS.md`](llama.cpp/AGENTS.md) | Upstream contribution rules (only relevant inside `llama.cpp/`) |
 | [`linkedin-post.md`](linkedin-post.md) | Narrative write-up of the Windows → Linux port |
@@ -141,7 +148,7 @@ Full numbers, multi-turn cache-reuse data, and agent-mode round-trip timings: [`
 
 ## Roadmap
 
-Framed as independent "chapters," each worth going deep on rather than a backlog to clear in order — full detail in [`SETUP.md`](SETUP.md#path-forward):
+Framed as independent "chapters," each worth going deep on rather than a backlog to clear in order. Summary below; full detail (including future ideas beyond this list) in [`docs/roadmap.md`](docs/roadmap.md):
 
 - [ ] Close the hallucination gap with real RAG (document/web-search grounding)
 - [ ] Port the Windows-only MCP tool stack (filesystem/git/memory/fetch/shell) to Fedora

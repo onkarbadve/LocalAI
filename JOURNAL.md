@@ -1,6 +1,6 @@
 # Local AI Journal
 
-Running log of changes, fixes, and incidents for the `~/LocalAI` (and `C:\LocalAI`) setup. Newest entries at the top. For static reference (hardware, models, flags), see [SETUP.md](SETUP.md). For the polished, structured version of recurring issues, see [docs/troubleshooting.md](docs/troubleshooting.md); for distilled takeaways, see [docs/lessons-learned.md](docs/lessons-learned.md).
+Running log of changes, fixes, and incidents for the `~/LocalAI` (and `C:\LocalAI`) setup. Newest entries at the top. For static reference (hardware, models, flags), see [SETUP.md](SETUP.md). For the polished, structured version of recurring issues, see [docs/troubleshooting.md](docs/troubleshooting.md); for distilled takeaways, see [docs/lessons-learned.md](docs/lessons-learned.md); for the stable decisions that came out of this history, see [adr/](adr/); for the same history as a version-history summary, see [CHANGELOG.md](CHANGELOG.md).
 
 **Entry format going forward** (not retroactively applied to entries below — this is a template for new ones, added per [AGENTS.md](AGENTS.md)'s documentation-update rules):
 

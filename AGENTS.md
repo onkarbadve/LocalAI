@@ -39,6 +39,8 @@ There is no automated test suite — this is infrastructure/config, not a librar
 - Append new entries to the **top** of [JOURNAL.md](JOURNAL.md) (newest first) whenever you make a change or resolve an issue — this is the one file that should never shrink.
 - If a journal entry describes a bug with a clear Problem/Cause/Solution/Verification shape, consider also adding a structured entry to [docs/troubleshooting.md](docs/troubleshooting.md) — the journal is the narrative record, troubleshooting.md is the lookup reference.
 - If a change affects hardware assumptions, flags, or model status, update [SETUP.md](SETUP.md) too — it should always reflect the current state, unlike the journal which is a historical log.
+- If a change reverses or supersedes a decision recorded in [adr/](adr/), add a new ADR that supersedes it (mark the old one's Status line accordingly) rather than editing the old record in place — ADRs are a history of decisions, not just the current one.
+- Completed roadmap work moves from [docs/roadmap.md](docs/roadmap.md)'s "Upcoming" section into [CHANGELOG.md](CHANGELOG.md) as a new entry, not just deleted from the roadmap.
 
 ## Repository philosophy
 
