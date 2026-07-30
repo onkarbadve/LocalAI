@@ -1,6 +1,6 @@
 # Benchmarks
 
-Real numbers observed during actual use and testing on the [hardware documented here](hardware.md) (Intel i5-12500H, Iris Xe iGPU, Vulkan, 16GB RAM). Nothing here is a synthetic/standardized benchmark run — every figure was measured incidentally while validating a feature or chasing a bug, and is sourced from [JOURNAL.md](../JOURNAL.md) and [SETUP.md](../SETUP.md). TODO markers are left where no measurement has been made.
+Real numbers observed during actual use and testing on the [hardware documented here](hardware.md) (Intel i5-12500H, Iris Xe iGPU, Vulkan, 16GB RAM). Nothing here is a synthetic/standardized benchmark run — every figure was measured incidentally while validating a feature or chasing a bug, and is sourced from [JOURNAL.md](../JOURNAL.md) and [SETUP.md](../SETUP.md). See [models.md](models.md) for what each model in the table below is actually for. TODO markers are left where no measurement has been made.
 
 ## Generation speed
 
@@ -51,4 +51,11 @@ Zero failures across all 9 tests. Full test table in [JOURNAL.md](../JOURNAL.md)
 
 - [ ] Formal prompt-processing tok/s for Qwen3-4B-Instruct-2507-heretic-av2 and Gemma 4 E4B (RAM/GPU memory columns above)
 - [ ] Head-to-head quality comparison across models on a fixed prompt set (see [models.md](models.md) for qualitative notes in the meantime)
-- [ ] A repeatable, scripted benchmark harness — currently every number here was captured incidentally during real use, not a standing benchmark suite (tracked as a roadmap item, see [SETUP.md](../SETUP.md#path-forward))
+- [ ] A repeatable, scripted benchmark harness — currently every number here was captured incidentally during real use, not a standing benchmark suite (tracked in [roadmap.md](roadmap.md#future-ideas))
+
+## Related documents
+
+- [hardware.md](hardware.md) — the machine every number above was measured on
+- [models.md](models.md) — what each model is for, alongside the numbers here
+- [SETUP.md](../SETUP.md) — the flags each measurement was taken with
+- [JOURNAL.md](../JOURNAL.md) — the original sessions these numbers were measured during

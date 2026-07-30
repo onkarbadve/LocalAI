@@ -1,6 +1,21 @@
 # Hardware & OS
 
-Static reference for the machine this setup runs on and how the two OS installs relate. For the directory layout and per-model launch flags, see [SETUP.md](../SETUP.md). For narrative history of how this hardware's limits were discovered, see [lessons-learned.md](lessons-learned.md).
+Static reference for the machine this setup runs on and how the two OS installs relate. For the directory layout and per-model launch flags, see [SETUP.md](../SETUP.md). For narrative history of how this hardware's limits were discovered, see [lessons-learned.md](lessons-learned.md). Related: [architecture.md](architecture.md), [benchmarks.md](benchmarks.md), [models.md](models.md).
+
+## At a glance
+
+Read this table first — it tells you whether the rest of this repository applies to your hardware.
+
+| Component | Value |
+|-----------|-------|
+| CPU | Intel Core i5-12500H (4P+8E cores, 16 threads) |
+| GPU | Intel Iris Xe (integrated — **no discrete GPU**) |
+| RAM | 16GB (~7.4–9.8GB Vulkan-visible budget) |
+| OS | Fedora 44 (daily driver), Windows (origin, preserved) |
+| Inference backend | Vulkan, via `llama.cpp` built from source |
+| Primary models | Qwen3-4B-Instruct-2507, Qwen3-4B-Instruct-2507-heretic-av2, Gemma 4 E4B-it |
+
+If your machine has a discrete GPU, most of the CUDA/ROCm-specific tuning ecosystem elsewhere online will serve you better than this repo — everything documented here is specifically about getting good performance **without** one. See [Who is this repository for?](../README.md#who-is-this-repository-for) in the README.
 
 ## Machine
 
@@ -29,3 +44,12 @@ Both are listed in `.gitignore` and intentionally excluded from this repository:
 - **`llama.cpp/`** — an upstream checkout built from source. Vendoring it here would fork a fast-moving upstream project inside this repo for no benefit; it's tracked instead by which build/commit is in use, noted in [SETUP.md](../SETUP.md) and [JOURNAL.md](../JOURNAL.md) where relevant.
 
 Both directories exist locally once the setup steps in [SETUP.md](../SETUP.md) are followed, but a fresh clone of this repo will not contain them.
+
+## Related documents
+
+- [SETUP.md](../SETUP.md) — directory layout and per-model flags
+- [architecture.md](architecture.md) — how the pieces run on this hardware
+- [benchmarks.md](benchmarks.md) — what this hardware actually achieves
+- [models.md](models.md) — models tested on this hardware, compared
+- [lessons-learned.md](lessons-learned.md) — practical findings this hardware's constraints produced
+- [../adr/0001-fedora-over-windows.md](../adr/0001-fedora-over-windows.md) · [../adr/0004-vulkan-backend.md](../adr/0004-vulkan-backend.md) — the stable decisions this hardware drove

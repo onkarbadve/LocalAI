@@ -151,3 +151,13 @@ sudo dnf install -y glslc spirv-headers-devel spirv-tools-devel
 **Solution**: verify offload indirectly via process RSS after a real generation — a low RSS (~500MB) confirms the model lives in Vulkan/GPU memory, not process RAM, versus a multi-GB RSS if it fell back to CPU. If it did fall back, set `-ngl` explicitly to the model's full layer count.
 
 **Verification**: `ps -o rss= -p <pid>` immediately after a completed generation.
+
+---
+
+## Related documents
+
+- [SETUP.md](../SETUP.md) — current flags for every script
+- [JOURNAL.md](../JOURNAL.md) — the full narrative account each entry above is condensed from
+- [architecture.md](architecture.md) — how these components fit together
+- [lessons-learned.md](lessons-learned.md) — the general takeaways drawn from these issues
+- [../adr/](../adr/) — the stable decisions behind why these components are in the stack at all
