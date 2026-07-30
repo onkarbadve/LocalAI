@@ -1,4 +1,24 @@
 #!/usr/bin/env bash
+#
+# Purpose: start (or create, on first run) the Open Terminal shell/file API
+#   as a rootless Podman container, giving Open WebUI's models a place to
+#   execute commands via the Integrations panel.
+# Requires: Podman (rootless); network access to pull
+#   ghcr.io/open-webui/open-terminal:slim on first run; an API key already
+#   generated at ~/.config/open-terminal/api-key (chmod 600) - the script
+#   prints the exact commands to create one if missing.
+# Arguments: none.
+# Expected output: prints the container name/URL and exits (0) if already
+#   running, or exits 1 with setup instructions if the API key file is
+#   missing; otherwise creates/starts the container. Once up,
+#   http://localhost:8000 serves the API (loopback-only, not LAN-reachable).
+# Typical usage: ./start-open-terminal.sh   (then configure the URL + key
+#   once in Open WebUI: Settings -> Integrations -> Open Terminal)
+# Failure cases: exits 1 immediately if the API key file doesn't exist;
+#   `podman` not installed/rootless not configured; image pull fails with no
+#   network. See docs/troubleshooting.md for the Direct-vs-System connection
+#   pitfall if chat tool-calling reports "Terminal server not found".
+#
 # Open Terminal - remote shell/file API, wired into Open WebUI as an
 # Integration (Admin Settings -> Integrations -> Open Terminal), giving
 # chat models a place to actually execute the code they write.

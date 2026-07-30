@@ -1,6 +1,19 @@
 # Local AI Journal
 
-Running log of changes, fixes, and incidents for the `~/LocalAI` (and `C:\LocalAI`) setup. Newest entries at the top. For static reference (hardware, models, flags), see [SETUP.md](SETUP.md).
+Running log of changes, fixes, and incidents for the `~/LocalAI` (and `C:\LocalAI`) setup. Newest entries at the top. For static reference (hardware, models, flags), see [SETUP.md](SETUP.md). For the polished, structured version of recurring issues, see [docs/troubleshooting.md](docs/troubleshooting.md); for distilled takeaways, see [docs/lessons-learned.md](docs/lessons-learned.md).
+
+**Entry format going forward** (not retroactively applied to entries below — this is a template for new ones, added per [AGENTS.md](AGENTS.md)'s documentation-update rules):
+
+> ## Date — short title
+>
+> **Goal**: what this session set out to do.
+> **Changes**: what was actually changed (scripts, config, flags).
+> **Results**: what was verified working, with how it was verified.
+> **Problems**: anything hit along the way, including dead ends.
+> **Lessons**: what this session taught, if generalizable — candidate for [docs/lessons-learned.md](docs/lessons-learned.md).
+> **Next steps**: anything left open.
+
+Older entries below predate this template and stay in their original free-form narrative style — don't retroactively reformat them, per [AGENTS.md](AGENTS.md#repository-philosophy) (the journal's honesty about the actual investigative process is the point, not a fixed structure).
 
 ---
 

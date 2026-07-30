@@ -1,4 +1,26 @@
 #!/usr/bin/env bash
+#
+# Purpose: launch the Gemma 4 E4B-it vision-chat llama-server instance on
+#   port 8080. Deprioritized fallback, not the active production server
+#   (that's start-qwen3.sh) - kept for when vision input is actually needed.
+# Requires: llama.cpp built from source with the Vulkan backend at
+#   $HOME/LocalAI/llama.cpp/build/bin/llama-server; the GGUF weights at
+#   $HOME/LocalAI/models/gemma-4-E4B-it-UD-Q4_K_XL.gguf and
+#   $HOME/LocalAI/models/mmproj-F16.gguf (see SETUP.md); an Intel iGPU (or
+#   other Vulkan device). Also carries two local, unsubmitted llama.cpp
+#   source patches (see docs/troubleshooting.md) that must be reapplied
+#   after any `git pull` of llama.cpp/.
+# Arguments: none. Edit the script directly to change model paths, port, or
+#   sampling/runtime flags. Vision (--mmproj) is currently commented out -
+#   uncomment the flag at the bottom to re-enable image input.
+# Expected output: runs in the foreground (via `exec`); binds
+#   127.0.0.1:8080 once ready; GET /health returns `{"status":"ok"}`.
+# Typical usage: ./start-gemma-e4b.sh   (stop start-qwen3.sh first - same port)
+# Failure cases: fails fast on a missing binary/model path; fails to bind if
+#   start-qwen3.sh (same port 8080) is already running; more crash/hang-prone
+#   than Qwen3 beyond the shared GPU fence-timeout bug - see
+#   docs/troubleshooting.md for known failure modes and current mitigations.
+#
 # Gemma 3n E4B-it (Unsloth Dynamic Q4_K_XL) + vision (mmproj-F16)
 # Ported from the tuned Windows setup (C:\LocalAI\Start-Server-Gemma4-E4B.bat)
 # to Linux/Vulkan.
