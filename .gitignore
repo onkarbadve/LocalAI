@@ -1,0 +1,4 @@
+models/
+llama.cpp/
+.claude/
+*.backup-*
