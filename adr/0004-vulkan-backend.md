@@ -5,7 +5,7 @@
 
 ## Context
 
-There is no discrete GPU anywhere in this setup — the only GPU-class compute device available is the Intel Iris Xe integrated GPU (see [docs/hardware.md](../docs/hardware.md)). Running models at usable speed on a 16GB machine requires real GPU offload rather than falling back to CPU-only inference.
+There is no discrete GPU anywhere in this setup — the only GPU-class compute device available is the Intel Iris Xe iGPU (see [docs/hardware.md](../docs/hardware.md)). Running models at usable speed on a 16GB machine requires real GPU offload rather than falling back to CPU-only inference.
 
 ## Decision
 

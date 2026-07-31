@@ -2,6 +2,14 @@
 
 Version history of this repository and the setup it documents. This is a summary view — [JOURNAL.md](JOURNAL.md) is the detailed, dated source of truth; [adr/](adr/) explains the reasoning behind the decisions that stuck. Entries are grouped into rough milestones, not formal semver releases (there's no package here to version) — the numbers exist to give a sense of order and progress.
 
+## v1.5 — Repository polish and CI (2026-07-31)
+
+- README: tightened "Features" into "Key Takeaways" and "Repository Structure" into "Repository at a Glance" (added a quick-facts table) for first-screen scannability.
+- Added `docs/compatibility.md` (tested OS/tool versions) and `docs/github-setup.md` (manual GitHub configuration checklist).
+- Added a static PNG export of the architecture diagram (`docs/images/architecture.png`) alongside the existing Mermaid source.
+- Added `.github/workflows/docs-lint.yml` — markdown formatting and link checks, no build/test steps — plus minimal issue templates (`.github/ISSUE_TEMPLATE/`).
+- Terminology and cross-link consistency pass across every markdown file; no functional or technical content changed.
+
 ## v1.4 — Documentation overhaul (2026-07-30 onward)
 
 - Restructured `README.md` around overview / features / architecture / quick start / repo structure / screenshots / benchmarks / documentation / roadmap.

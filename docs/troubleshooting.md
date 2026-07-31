@@ -11,6 +11,7 @@ Structured writeups of real issues hit while building and running this setup, co
 **Cause**: the build needs a package named exactly `glslc` — not `glslangValidator`, which looks like the same shader compiler but isn't. Two further CMake dependencies are also required: `spirv-headers-devel` and `spirv-tools-devel`.
 
 **Solution**: install the correct package names before configuring:
+
 ```bash
 sudo dnf install -y glslc spirv-headers-devel spirv-tools-devel
 ```
@@ -160,4 +161,5 @@ sudo dnf install -y glslc spirv-headers-devel spirv-tools-devel
 - [JOURNAL.md](../JOURNAL.md) — the full narrative account each entry above is condensed from
 - [architecture.md](architecture.md) — how these components fit together
 - [lessons-learned.md](lessons-learned.md) — the general takeaways drawn from these issues
+- [compatibility.md](compatibility.md) — which versions each issue above was found on
 - [../adr/](../adr/) — the stable decisions behind why these components are in the stack at all

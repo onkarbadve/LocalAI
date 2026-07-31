@@ -75,7 +75,7 @@ warning: failed to mlock 412090368-byte buffer: Cannot allocate memory
 $ ulimit -l
 8192
 
-8MB cap, set by systemd's user@.service, not /etc/security/limits.conf like every search result claims. Fedora desktop sessions get their limits from systemd, not PAM. That one cost real time to track down.
+8MB cap, set by systemd's `user@.service`, not `/etc/security/limits.conf` like every search result claims. Fedora desktop sessions get their limits from systemd, not PAM. That one cost real time to track down.
 
 Didn't fight it. Windows testing had already shown mlock gets risky under memory pressure on 16GB anyway. Both platforms run on plain mmap now.
 

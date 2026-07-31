@@ -13,7 +13,7 @@ Relevant components, for context on what a report might touch:
 
 If you find a real security issue in **this repository's own scripts or documented configuration** (for example: a script that would expose a service more broadly than documented, an API key handled unsafely, or a documented mitigation that's actually ineffective), please report it privately rather than opening a public issue:
 
-**onkarbadve@gmail.com**
+**<onkarbadve@gmail.com>**
 
 Include:
 - What you found and why it's a security issue (not just a bug).

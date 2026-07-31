@@ -9,7 +9,7 @@ Read this table first — it tells you whether the rest of this repository appli
 | Component | Value |
 |-----------|-------|
 | CPU | Intel Core i5-12500H (4P+8E cores, 16 threads) |
-| GPU | Intel Iris Xe (integrated — **no discrete GPU**) |
+| GPU | Intel Iris Xe iGPU (**no discrete GPU**) |
 | RAM | 16GB (~7.4–9.8GB Vulkan-visible budget) |
 | OS | Fedora 44 (daily driver), Windows (origin, preserved) |
 | Inference backend | Vulkan, via `llama.cpp` built from source |
@@ -52,4 +52,5 @@ Both directories exist locally once the setup steps in [SETUP.md](../SETUP.md) a
 - [benchmarks.md](benchmarks.md) — what this hardware actually achieves
 - [models.md](models.md) — models tested on this hardware, compared
 - [lessons-learned.md](lessons-learned.md) — practical findings this hardware's constraints produced
+- [compatibility.md](compatibility.md) — exact tested OS/driver versions
 - [../adr/0001-fedora-over-windows.md](../adr/0001-fedora-over-windows.md) · [../adr/0004-vulkan-backend.md](../adr/0004-vulkan-backend.md) — the stable decisions this hardware drove

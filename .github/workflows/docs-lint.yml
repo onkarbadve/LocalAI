@@ -1,0 +1,40 @@
+name: Docs Lint
+
+# Documentation-only CI: this repo has no build or test suite (it's
+# infrastructure/config, not a library — see AGENTS.md), so this workflow
+# only validates markdown formatting and links. No build steps, no tests.
+on:
+  push:
+    branches: [main]
+    paths: ["**/*.md"]
+  pull_request:
+    paths: ["**/*.md"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  markdownlint:
+    name: Markdown formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v19
+        with:
+          globs: |
+            **/*.md
+            !llama.cpp/**
+
+  link-check:
+    name: Markdown links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --config lychee.toml
+            --no-progress
+            "**/*.md"
+          fail: true

@@ -1,0 +1,15 @@
+{
+  // This repo writes prose as one paragraph per line (no hard-wrapping) and
+  // uses a couple of intentional structural choices (centered README header,
+  // compact tables) that trip the stricter default rules below without being
+  // actual problems. Disabled here rather than reformatting working content.
+  "default": true,
+  "MD013": false, // line-length — prose isn't hard-wrapped in this repo
+  "MD033": false, // no-inline-html — README's centered <div> header
+  "MD041": false, // first-line-heading — README's <div> precedes the H1
+  "MD022": false, // blanks-around-headings — pre-existing SETUP.md style
+  "MD032": false, // blanks-around-lists — pre-existing SETUP.md style
+  "MD024": false, // no-duplicate-heading — every docs/ file repeats "Related documents"
+  "MD060": false, // table-column-style — not yet applied repo-wide
+  "MD018": false  // no-missing-space-atx — linkedin-post.md's real hashtags, not headings
+}
