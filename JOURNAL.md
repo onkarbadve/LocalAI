@@ -17,6 +17,31 @@ Older entries below predate this template and stay in their original free-form n
 
 ---
 
+## 2026-07-31 — Final repository polish: discoverability, consistency, and CI
+
+**Goal**: a documentation-only polish pass — improve first-time-visitor experience, terminology consistency, and navigation across the already-complete doc set, without adding new documentation or rewriting working content.
+
+**Changes**:
+- README: retitled "Features" → "Key Takeaways" (same evidence-backed bullets, cross-linked to the docs that back each claim) and "Repository Structure" → "Repository at a Glance" (added a compact quick-facts table above the existing directory tree).
+- Fixed two Iris Xe wording inconsistencies (`adr/0004-vulkan-backend.md`, `docs/hardware.md`) to match the "Intel Iris Xe iGPU" phrasing used everywhere else.
+- Exported the `docs/architecture.md` Mermaid diagram to a static PNG (`docs/images/architecture.png`, via `mmdc`) and referenced both versions in that doc, for viewers without Mermaid rendering.
+- Added `docs/github-setup.md` — a reusable checklist for the GitHub-UI-only configuration (description, topics, social preview, homepage, release strategy, branch protection, discussions) that doesn't live in files.
+- Added `docs/compatibility.md` — a tested-versions matrix for Fedora/Windows/Podman/Open WebUI/`llama.cpp`/Vulkan/Intel graphics drivers, with `TODO`s left wherever a version genuinely isn't recorded anywhere else in the repo, per the no-fabrication rule in `AGENTS.md`.
+- Added `.github/workflows/docs-lint.yml` (markdownlint-cli2 + lychee link check, docs-only, no build/test steps), `.markdownlint.jsonc`, and `lychee.toml`.
+- Added minimal issue templates (`.github/ISSUE_TEMPLATE/`: bug report, documentation, feature request + config.yml), the feature-request one explicitly pointing at `CONTRIBUTING.md`'s out-of-scope note given this repo documents one person's setup, not a product.
+- Fixed small pre-existing markdown lint findings surfaced while configuring the lint job: a missing blank line around a fenced code block (`docs/troubleshooting.md`), and three bare URLs/email/unit-name false-positives wrapped correctly (`SECURITY.md`, `SETUP.md`, `linkedin-post.md`).
+- Cross-linked the two new docs into README's Documentation table, `docs/hardware.md`, `docs/troubleshooting.md`, and `CONTRIBUTING.md`'s "Related documents"/workflow sections.
+
+**Results**: `npx markdownlint-cli2 "**/*.md"` and a custom internal-link checker both run clean (the only "broken" links are the two pre-existing, expected ones into the gitignored `llama.cpp/` checkout — see `docs/hardware.md#why-models-and-llamacpp-arent-in-git`). `codespell` found nothing beyond one confirmed false positive (`</nothink>`, a literal template tag). README grew from 167 to 179 lines — within the "don't significantly increase length" constraint for this task.
+
+**Problems**: none blocking. The task brief referenced README sections ("Key Takeaways", "Repository at a Glance") that didn't exist under those exact names yet — treated as a rename/tighten of the closest existing sections ("Features", "Repository Structure") rather than new, separately-maintained content, to avoid duplication.
+
+**Lessons**: this repo's existing documentation was already unusually consistent (single terminology convention, dense cross-linking, no fabricated numbers) — most of the "audit" phases of this task confirmed a clean bill of health rather than finding real problems, which is itself worth recording so a future pass doesn't re-litigate the same ground.
+
+**Next steps**: none opened by this pass. `docs/compatibility.md`'s `TODO` rows (Windows edition/build, Podman version, `llama.cpp`/Vulkan/Mesa versions on Fedora) are real gaps — worth filling in next time any of those get touched for an unrelated reason, not urgent enough to chase down standalone.
+
+---
+
 ## 2026-07-30 — Documented the Podman-over-Docker rationale (retroactively, no re-litigation)
 
 User asked why Podman was chosen for Open WebUI/Open Terminal over Docker; no prior journal entry recorded an explicit decision, so it was never actually debated in-session - Podman was simply the starting choice both container scripts were built on (`start-open-webui.sh`, `start-open-terminal.sh`, see SETUP.md). Capturing the reasoning now so it isn't lost:

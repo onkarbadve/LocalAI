@@ -27,6 +27,10 @@ flowchart LR
     QwenU -->|Vulkan| GPU
 ```
 
+Static export of the diagram above, for viewers without Mermaid rendering: [`images/architecture.png`](images/architecture.png).
+
+![Architecture diagram](images/architecture.png)
+
 ## Components
 
 - **`llama-server` (×2 registered, 1 running at a time)** — the inference engine, built from `llama.cpp` source with the Vulkan backend. Production (`start-qwen3.sh`, port `8080`) and an uncensored/blunt-mode variant (`start-qwen3-uncensored.sh`, port `8081`) both register as connections in Open WebUI, but only one process runs at once — combined Vulkan memory doesn't fit both simultaneously at their current context sizes (see [SETUP.md](../SETUP.md#qwen3-4b-instruct-2507-heretic-av2--uncensored-bluntdirect-assistant-start-qwen3-uncensoredsh-fedora-only)). Whichever port is live just shows up in Open WebUI's model picker.

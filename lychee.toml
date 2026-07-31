@@ -1,0 +1,17 @@
+# Config for the link-check job in .github/workflows/docs-lint.yml.
+# Excludes targets that are expected to be unreachable in CI rather than
+# broken: this machine's own loopback/Tailscale addresses (documented, not
+# public), a templated placeholder hostname, and links into llama.cpp/ —
+# an upstream checkout that's gitignored and never present in a fresh clone
+# (see docs/hardware.md#why-models-and-llamacpp-arent-in-git).
+exclude = [
+  '^https?://localhost',
+  '^https?://127\.0\.0\.1',
+  '^https?://100\.',
+  '\.ts\.net',
+  '^mailto:',
+  'llama\.cpp/AGENTS\.md$',
+  '(^|/)llama\.cpp$',
+]
+
+exclude_all_private = true

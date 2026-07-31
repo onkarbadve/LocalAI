@@ -39,14 +39,14 @@ This repo is both a working setup and its own documentation: every bug, workarou
 - Enterprise AI infrastructure or multi-tenant deployment
 - Distributed/clustered serving across multiple machines
 
-## Features
+## Key Takeaways
 
 - **Zero cloud dependency** — every model runs locally on integrated graphics, nothing leaves the machine.
-- **Vulkan iGPU offload** — full-layer GPU offload on an Intel Iris Xe iGPU, no discrete card required.
+- **Vulkan iGPU offload** — full-layer GPU offload on an Intel Iris Xe iGPU, no discrete card required, sustaining ~9–9.8 tok/s (full numbers in [`docs/benchmarks.md`](docs/benchmarks.md)).
 - **Dual-model chat** — a production agent-mode model and a separate blunt/uncensored model, both registered in Open WebUI, run mutually exclusively without reconfiguration.
-- **Agent tooling** — real tool-calling (Builtin Tools) and a shell/file Integration (Open Terminal), verified end-to-end through Open WebUI, not just curl.
+- **Agent tooling** — real tool-calling (Builtin Tools) and a shell/file Integration (Open Terminal), verified end-to-end through Open WebUI in 9/9 real tests, not just curl.
 - **Remote access** — reachable from a phone over a Tailscale VPN overlay, no port-forwarding or public exposure.
-- **Documented crash hardening** — local patches and mitigations for a real iGPU fence-timeout bug, turning silent crashes into clean, recoverable errors.
+- **Documented crash hardening** — local patches and mitigations for a real iGPU fence-timeout bug, turning silent crashes into clean, recoverable errors (see [`docs/troubleshooting.md`](docs/troubleshooting.md)).
 
 ## Architecture
 
@@ -81,7 +81,17 @@ This is the simplified shape of it. For the full diagram — both `llama-server`
 
 Models aren't checked into this repo (multi-GB GGUF files). Building `llama.cpp` from source, placing model weights, Tailscale setup, and every flag's reasoning are in [`SETUP.md`](SETUP.md) — start there for anything beyond running an already-built setup.
 
-## Repository Structure
+## Repository at a Glance
+
+| | |
+|---|---|
+| **Hardware** | Intel i5-12500H · Intel Iris Xe iGPU · 16GB RAM — no discrete GPU |
+| **OS** | Fedora 44 (daily driver) · Windows (origin, preserved) |
+| **Inference** | `llama.cpp`, Vulkan backend, full-layer GPU offload |
+| **Chat frontend** | Open WebUI + Open Terminal, rootless Podman |
+| **Remote access** | Tailscale VPN overlay |
+| **License** | MIT |
+| **Status** | Active daily driver ([`JOURNAL.md`](JOURNAL.md)) |
 
 ```text
 LocalAI/
@@ -137,6 +147,8 @@ Full numbers, multi-turn cache-reuse data, and agent-mode round-trip timings: [`
 | [`docs/troubleshooting.md`](docs/troubleshooting.md) | Structured Problem/Cause/Solution/Verification writeups |
 | [`docs/lessons-learned.md`](docs/lessons-learned.md) | Practical conclusions from real experimentation, by topic |
 | [`docs/roadmap.md`](docs/roadmap.md) | Completed / upcoming / future-idea work, in more detail than below |
+| [`docs/compatibility.md`](docs/compatibility.md) | Tested versions of every OS/tool in the stack |
+| [`docs/github-setup.md`](docs/github-setup.md) | Manual GitHub configuration checklist (topics, social preview, releases) |
 | [`adr/`](adr/) | Architecture Decision Records — why the stable, load-bearing choices were made |
 | [`JOURNAL.md`](JOURNAL.md) | Dated running log — newest entries first, the historical source of truth |
 | [`CHANGELOG.md`](CHANGELOG.md) | Version history of this repository itself |

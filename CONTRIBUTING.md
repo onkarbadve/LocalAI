@@ -27,6 +27,8 @@ This repository is primarily a personal engineering notebook — a running recor
 
 Read [AGENTS.md](AGENTS.md) before proposing documentation changes — it covers this repo's specific conventions (comment style in scripts, when to update `JOURNAL.md` vs. `docs/`, why content gets moved rather than deleted).
 
+Maintainer-only GitHub configuration (repo description, topics, release strategy) is checklisted separately in [docs/github-setup.md](docs/github-setup.md) — it doesn't affect contributions, just repo settings.
+
 ## Code of conduct
 
 Be respectful and constructive. This is a small, personal project maintained by one person in their spare time — response times may be slow.

@@ -123,7 +123,7 @@ Rootless Podman container (`ghcr.io/open-webui/open-webui:main`), point at which
 - Data persisted in a named Podman volume (`open-webui-data`), not bind-mounted.
 - Script is idempotent: first run creates the container, later runs just `podman start` the existing one.
 
-UI: http://localhost:3000 — first visit creates the local admin account. Switching which llama.cpp model is active just means restarting the underlying `start-*.sh` script for the port you want live; Open WebUI already has both 8080 and 8081 registered as connections (see above), so it reconnects automatically rather than needing reconfiguration.
+UI: <http://localhost:3000> — first visit creates the local admin account. Switching which llama.cpp model is active just means restarting the underlying `start-*.sh` script for the port you want live; Open WebUI already has both 8080 and 8081 registered as connections (see above), so it reconnects automatically rather than needing reconfiguration.
 
 Not yet ported to Windows (no Podman/Docker there currently).
 
