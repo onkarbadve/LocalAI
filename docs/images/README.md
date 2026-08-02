@@ -10,7 +10,7 @@ Replace each file in place (keep the filename) with a real screenshot (PNG or JP
 |---|---|---|
 | `openwebui-home.png` | Open WebUI homepage / chat list | TODO — placeholder |
 | `chat.png` | A real chat conversation, ideally showing an agent-mode tool call in action | TODO — placeholder |
-| `model-selection.png` | Model picker showing both registered `llama-server` connections (production + uncensored) | TODO — placeholder |
+| `model-selection.png` | Model picker showing all three registered `llama-server` connections (production + 2 uncensored) | TODO — placeholder |
 | `mobile.png` | Open WebUI accessed from a phone over the Tailscale tailnet | TODO — placeholder |
 | `open-terminal.png` | Open Terminal integration — the SYSTEM connection invoked from chat, or the Files/Terminal side panel | TODO — placeholder |
 | `settings.png` *(optional)* | Model Capabilities / Integrations settings pages referenced in [docs/troubleshooting.md](../troubleshooting.md) | TODO — placeholder |
@@ -19,4 +19,4 @@ Replace each file in place (keep the filename) with a real screenshot (PNG or JP
 
 | File | What it is | Status |
 |---|---|---|
-| `architecture.png` | Static PNG export of the Mermaid diagram in [docs/architecture.md](../architecture.md), for viewers without Mermaid rendering | Generated — regenerate from the Mermaid source in that file if the diagram changes |
+| `architecture.png` | Static PNG export of the Mermaid diagram in [docs/architecture.md](../architecture.md), for viewers without Mermaid rendering | **Stale** — diagram gained SearXNG/MeTube/Gemma-uncensored on 2026-08-02; regenerate with `mmdc` once available on this box |

@@ -18,10 +18,11 @@ Where this setup has been and where it's headed. "Completed" and "Upcoming" are 
 
 Framed as independent "chapters" in [SETUP.md](../SETUP.md#path-forward) — each is its own project, meant to be gone deep on one at a time rather than cleared in order:
 
-- [ ] **Close the hallucination gap with real RAG** — document/web-search grounding via Open WebUI's existing support for it, rather than just documenting that the uncensored model confabulates.
+- [x] **Web-search grounding via self-hosted SearXNG** — done (see [JOURNAL.md](../JOURNAL.md), 2026-08-01); backs Open WebUI's Web Search toggle so model-issued queries stay local.
+- [ ] **Close the remaining hallucination gap with document RAG** — web-search grounding is live, document grounding isn't yet.
 - [ ] **Port the Windows-only MCP tool stack to Fedora** — filesystem/git/memory/fetch/shell servers, plus the dual-server coding setup (`startCoding.bat`), neither of which made the Windows → Fedora jump yet.
 - [ ] **Resolve the iGPU fence-timeout bug upstream, not just mitigate it** — validate `GGML_VK_MAX_NODES_PER_SUBMIT=1` over real extended use, then file the upstream `i915` bug with the dmesg traces/coredumps already gathered.
-- [ ] **Real concurrent serving instead of manual model swapping** — re-examine the mutual-exclusivity assumption between the two chat models (shrink context sizes and/or add a lightweight router) now that it's been running stably for a while.
+- [ ] **Real concurrent serving instead of manual model swapping** — re-examine the mutual-exclusivity assumption between the three chat models (shrink context sizes and/or add a lightweight router) now that it's been running stably for a while.
 - [ ] **Voice via `whisper.cpp`**, routed around Gemma's dead-end audio path (two separate unfixable upstream blockers documented in [troubleshooting.md](troubleshooting.md)).
 - [ ] **A small personal LoRA fine-tune** on personal data/writing style — everything so far has been off-the-shelf quants and community abliterations.
 - [ ] **Turn crash monitoring into real self-healing infrastructure** — `gpu-fence-watch.service` currently only alerts; auto-restart-on-crash plus a phone push notification would close the gap between "noticed it crashed" and "it healed itself."
