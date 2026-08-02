@@ -107,8 +107,7 @@ LocalAI/
 ├── SETUP.md                      # hardware, flags, models, full technical reference
 ├── JOURNAL.md                    # dated log of every change, fix, and incident
 ├── CHANGELOG.md                  # version history of this repository
-├── AGENTS.md                     # conventions for AI coding agents working in this repo
-└── linkedin-post.md              # write-up of the Windows → Linux port
+└── AGENTS.md                     # conventions for AI coding agents working in this repo
 ```
 
 `llama.cpp/` and `models/` exist locally once [`SETUP.md`](SETUP.md)'s steps are followed, but aren't checked into Git — see [`docs/hardware.md`](docs/hardware.md#why-models-and-llamacpp-arent-in-git) for why.
@@ -154,7 +153,6 @@ Full numbers, multi-turn cache-reuse data, and agent-mode round-trip timings: [`
 | [`CHANGELOG.md`](CHANGELOG.md) | Version history of this repository itself |
 | [`AGENTS.md`](AGENTS.md) | Conventions for AI coding agents working in this repo |
 | [`llama.cpp/AGENTS.md`](llama.cpp/AGENTS.md) | Upstream contribution rules (only relevant inside `llama.cpp/`) |
-| [`linkedin-post.md`](linkedin-post.md) | Narrative write-up of the Windows → Linux port |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to propose changes to this repo |
 | [`SECURITY.md`](SECURITY.md) | Reporting a security issue, and documented network-exposure trade-offs |
 
