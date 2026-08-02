@@ -27,16 +27,23 @@
 # llama-server on the host network. Moved to 3000 instead.
 # OPENAI_API_KEY: llama-server doesn't check it, but Open WebUI's connection
 # form requires a non-empty value to treat the endpoint as configured.
-# OPENAI_API_BASE_URLS (plural, semicolon-separated, added 2026-07-30): also
-# registers the uncensored model's server (start-qwen3-uncensored.sh, port
-# 8081) as a second connection, so it shows up in the model picker without
+# OPENAI_API_BASE_URLS (plural, semicolon-separated, added 2026-07-30, extended
+# 2026-08-01 with port 8082): also registers the uncensored model servers
+# (start-qwen3-uncensored.sh port 8081, start-gemma-uncensored.sh port 8082)
+# as additional connections, so they show up in the model picker without
 # reconfiguring Open WebUI each time you switch which llama-server is running.
-# The two llama-server processes are still run mutually exclusively (see
-# start-qwen3-uncensored.sh's own comment - combined Vulkan memory doesn't fit
-# both at once) - whichever one isn't currently running will just show as
-# unreachable in the model picker rather than error at Open WebUI's own startup.
+# These llama-server processes are still run mutually exclusively (see each
+# script's own memory-budget comment) - whichever ones aren't currently
+# running just show as unreachable in the model picker rather than error at
+# Open WebUI's own startup.
 # ENABLE_OLLAMA_API=false: no Ollama running on this box; skips its
 # unreachable-endpoint warnings in the logs.
+# ENABLE_RAG_WEB_SEARCH / RAG_WEB_SEARCH_ENGINE / SEARXNG_QUERY_URL (added
+# 2026-08-01): wires the chat "Web Search" toggle to a self-hosted SearXNG
+# instance (start-searxng.sh, port 8888, JSON API) instead of an external
+# search API - keeps queries local rather than sending them to a third-party
+# search provider, matching the local-first approach of this setup. Requires
+# start-searxng.sh to be running first.
 # ENABLE_KB_EXEC=true: gives Native-mode models a filesystem-style interface
 # (ls/tree/grep/cat) over attached Knowledge instead of just search tools -
 # capable models chain this more reliably. No effect on Legacy-mode models,
@@ -67,9 +74,12 @@ exec podman run -d \
   --name "$CONTAINER" \
   --network host \
   -e PORT=3000 \
-  -e OPENAI_API_BASE_URLS="http://localhost:8080/v1;http://localhost:8081/v1" \
-  -e OPENAI_API_KEYS="sk-no-key-required;sk-no-key-required" \
+  -e OPENAI_API_BASE_URLS="http://localhost:8080/v1;http://localhost:8081/v1;http://localhost:8082/v1" \
+  -e OPENAI_API_KEYS="sk-no-key-required;sk-no-key-required;sk-no-key-required" \
   -e ENABLE_OLLAMA_API=false \
   -e ENABLE_KB_EXEC=true \
+  -e ENABLE_RAG_WEB_SEARCH=true \
+  -e RAG_WEB_SEARCH_ENGINE=searxng \
+  -e SEARXNG_QUERY_URL="http://localhost:8888/search?q=<query>" \
   -v open-webui-data:/app/backend/data \
   ghcr.io/open-webui/open-webui:main

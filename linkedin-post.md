@@ -59,7 +59,7 @@ If you're running local models: how much of your setup time actually goes to ups
 
 ## Post 3 — Windows to Fedora port (DRAFT — use this version, not any earlier draft)
 
-Local AI series — chapter 3.
+Local AI series — chapter 3. Chapters 1 and 2 are pinned in my Featured section.
 
 Same models, same flags, same laptop. Windows and Fedora ran this local LLM setup at nearly identical speed. Getting there cost one wrong package name and a RAM limit nobody expects to find on a desktop OS.
 
