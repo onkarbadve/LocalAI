@@ -43,8 +43,9 @@ This repo is both a working setup and its own documentation: every bug, workarou
 
 - **Zero cloud dependency** — every model runs locally on integrated graphics, nothing leaves the machine.
 - **Vulkan iGPU offload** — full-layer GPU offload on an Intel Iris Xe iGPU, no discrete card required, sustaining ~9–9.8 tok/s (full numbers in [`docs/benchmarks.md`](docs/benchmarks.md)).
-- **Dual-model chat** — a production agent-mode model and a separate blunt/uncensored model, both registered in Open WebUI, run mutually exclusively without reconfiguration.
+- **Three chat models, one UI** — a production agent-mode model plus separate uncensored Qwen3 and Gemma variants, all registered in Open WebUI, run mutually exclusively without reconfiguration.
 - **Agent tooling** — real tool-calling (Builtin Tools) and a shell/file Integration (Open Terminal), verified end-to-end through Open WebUI in 9/9 real tests, not just curl.
+- **Local web search** — self-hosted SearXNG backs Open WebUI's web search/RAG toggle, so model-issued queries stay on the box instead of hitting a third-party search API.
 - **Remote access** — reachable from a phone over a Tailscale VPN overlay, no port-forwarding or public exposure.
 - **Documented crash hardening** — local patches and mitigations for a real iGPU fence-timeout bug, turning silent crashes into clean, recoverable errors (see [`docs/troubleshooting.md`](docs/troubleshooting.md)).
 
@@ -57,11 +58,12 @@ flowchart TD
     API --> WebUI["Open WebUI"]
     WebUI --> Tools["Builtin Tools"]
     WebUI --> Term["Open Terminal"]
+    WebUI --> Search["SearXNG<br/>(local web search)"]
     WebUI --> TS["Tailscale"]
     TS --> Remote["Browser / Mobile"]
 ```
 
-This is the simplified shape of it. For the full diagram — both `llama-server` ports, container networking, and why the two chat models run mutually exclusively — see [`docs/architecture.md`](docs/architecture.md). Hardware specs: [`docs/hardware.md`](docs/hardware.md).
+This is the simplified shape of it. For the full diagram — all three `llama-server` ports, container networking, and why the chat models run mutually exclusively — see [`docs/architecture.md`](docs/architecture.md). Hardware specs: [`docs/hardware.md`](docs/hardware.md).
 
 ## Quick Start
 
@@ -69,14 +71,21 @@ This is the simplified shape of it. For the full diagram — both `llama-server`
 # Fedora — start the production chat model
 ./start-qwen3.sh
 
-# ...or the blunt/uncensored variant (mutually exclusive with the above)
+# ...or an uncensored variant (mutually exclusive with the above and each other)
 ./start-qwen3-uncensored.sh
+./start-gemma-uncensored.sh
 
 # Chat frontend (Podman, idempotent — creates once, starts thereafter)
 ./start-open-webui.sh          # → http://localhost:3000
 
 # Shell/file access for the models, wired in as an Open WebUI Integration
 ./start-open-terminal.sh       # → http://localhost:8000
+
+# Local web search backing Open WebUI's Web Search toggle
+./start-searxng.sh             # → http://localhost:8888
+
+# Browser UI for yt-dlp downloads
+./start-metube.sh              # → http://localhost:8083
 ```
 
 Models aren't checked into this repo (multi-GB GGUF files). Building `llama.cpp` from source, placing model weights, Tailscale setup, and every flag's reasoning are in [`SETUP.md`](SETUP.md) — start there for anything beyond running an already-built setup.
@@ -100,8 +109,11 @@ LocalAI/
 ├── start-qwen3.sh                # production chat/coding/agent model
 ├── start-qwen3-uncensored.sh     # abliterated blunt/direct-assistant variant
 ├── start-gemma-e4b.sh            # vision chat (deprioritized)
+├── start-gemma-uncensored.sh     # abliterated Gemma variant, own port, mutually exclusive with the above
 ├── start-open-webui.sh           # Open WebUI, rootless Podman
 ├── start-open-terminal.sh        # shell/file API for the models, rootless Podman
+├── start-searxng.sh              # self-hosted metasearch, backs Open WebUI's Web Search toggle, rootless Podman
+├── start-metube.sh               # yt-dlp browser UI, rootless Podman
 ├── docs/                         # topic-specific reference docs and screenshots (see Documentation below)
 ├── adr/                          # architecture decision records — stable decisions, not chronological history
 ├── SETUP.md                      # hardware, flags, models, full technical reference
@@ -131,6 +143,7 @@ Not yet captured — placeholders below and capture checklist in [`docs/images/`
 | Qwen3-4B-Instruct-2507 | Q4_K_XL | 24576 | ~9–9.8 tok/s | ~530MB RSS | ~6GB | Production, port 8080 |
 | Qwen3-4B-Instruct-2507-heretic-av2 | Q4_K_M | 24576 | ~9–11.6 tok/s | TODO | ~6GB | Blunt/direct, port 8081 |
 | Gemma 4 E4B-it + mmproj | Q4_K_XL | 8192 | ~9–9.8 tok/s | TODO | TODO | Deprioritized fallback |
+| Gemma-4-E4B-Uncensored-HauhauCS-Aggressive | Q4_K_P | 16384 | ~7.4 tok/s gen, ~41 tok/s prompt | TODO | ~5.3GB | Blunt/direct, port 8082 |
 
 Full numbers, multi-turn cache-reuse data, and agent-mode round-trip timings: [`docs/benchmarks.md`](docs/benchmarks.md).
 
@@ -160,7 +173,8 @@ Full numbers, multi-turn cache-reuse data, and agent-mode round-trip timings: [`
 
 Framed as independent "chapters," each worth going deep on rather than a backlog to clear in order. Summary below; full detail (including future ideas beyond this list) in [`docs/roadmap.md`](docs/roadmap.md):
 
-- [ ] Close the hallucination gap with real RAG (document/web-search grounding)
+- [x] Web-search grounding via self-hosted SearXNG (see [`JOURNAL.md`](JOURNAL.md), 2026-08-01)
+- [ ] Close the remaining hallucination gap with document RAG
 - [ ] Port the Windows-only MCP tool stack (filesystem/git/memory/fetch/shell) to Fedora
 - [ ] Resolve the iGPU fence-timeout bug upstream, not just mitigate it
 - [ ] Proper concurrent serving instead of manual model swapping
