@@ -59,5 +59,4 @@ Static export of the diagram above, for viewers without Mermaid rendering: [`ima
 - [SETUP.md](../SETUP.md) — flag-by-flag configuration for every script
 - [hardware.md](hardware.md) — the machine this runs on
 - [troubleshooting.md](troubleshooting.md) — issues hit in this architecture and how they were resolved
-- [JOURNAL.md](../JOURNAL.md) — dated log of how this architecture evolved
-- [../adr/](../adr/) — why these specific components were chosen (Fedora, Qwen3, Open WebUI, Vulkan)
+- [JOURNAL.md](../JOURNAL.md) — dated log of how this architecture evolved, including why each component was chosen

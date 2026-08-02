@@ -1,13 +1,13 @@
 # Roadmap
 
-Where this setup has been and where it's headed. "Completed" and "Upcoming" are drawn directly from [JOURNAL.md](../JOURNAL.md) and [SETUP.md](../SETUP.md#path-forward); "Future Ideas" are speculative and explicitly marked as such — not commitments, not scoped, not started. See [CHANGELOG.md](../CHANGELOG.md) for the same completed work framed as version history, and [adr/](../adr/) for the reasoning behind the load-bearing decisions along the way.
+Where this setup has been and where it's headed. "Completed" and "Upcoming" are drawn directly from [JOURNAL.md](../JOURNAL.md) and [SETUP.md](../SETUP.md#path-forward); "Future Ideas" are speculative and explicitly marked as such — not commitments, not scoped, not started.
 
 ## Completed
 
 - Local coding-assistant setup on Windows (`C:\LocalAI`), Qwen3.5-4B + Qwen2.5-Coder-1.5B, MCP tool stack for agentic coding.
-- Diagnosed and resolved the Qwen3.5-4B multi-turn caching bug by switching to dense Qwen3-4B-Instruct-2507 (see [adr/0002-qwen3-model-choice.md](../adr/0002-qwen3-model-choice.md)).
-- Ported the setup from Windows to Fedora as the daily driver, built `llama.cpp` from source with the Vulkan backend (see [adr/0001-fedora-over-windows.md](../adr/0001-fedora-over-windows.md), [adr/0004-vulkan-backend.md](../adr/0004-vulkan-backend.md)).
-- Deployed Open WebUI as the chat frontend via rootless Podman (see [adr/0003-openwebui.md](../adr/0003-openwebui.md)).
+- Diagnosed and resolved the Qwen3.5-4B multi-turn caching bug by switching to dense Qwen3-4B-Instruct-2507 (see [JOURNAL.md](../JOURNAL.md)).
+- Ported the setup from Windows to Fedora as the daily driver, built `llama.cpp` from source with the Vulkan backend (see [JOURNAL.md](../JOURNAL.md)).
+- Deployed Open WebUI as the chat frontend via rootless Podman (see [JOURNAL.md](../JOURNAL.md)).
 - Deployed Open Terminal as a shell/file Integration, wired into both Open WebUI's chat tool-calling and Files/Terminal side panels.
 - Diagnosed and root-caused the `i915`/Vulkan iGPU fence-timeout bug, applied `GGML_VK_MAX_NODES_PER_SUBMIT=1` as a trial mitigation, and patched three unguarded crash sites in `llama.cpp`'s server code (local, unsubmitted).
 - Set up Tailscale for remote access (phone, away from home) without port-forwarding or public exposure.
@@ -47,6 +47,4 @@ Speculative, unscoped, not yet started, and not a commitment — listed here so 
 ## Related documents
 
 - [SETUP.md](../SETUP.md#path-forward) — the original "path forward" writeup this roadmap is built from
-- [CHANGELOG.md](../CHANGELOG.md) — completed work as version history
-- [adr/](../adr/) — why the stable decisions behind this roadmap were made
 - [JOURNAL.md](../JOURNAL.md) — the dated, narrative source of truth for everything completed

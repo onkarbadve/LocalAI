@@ -59,5 +59,4 @@ Practical conclusions drawn from real experimentation on this setup — not gene
 - [troubleshooting.md](troubleshooting.md) — the specific issues these lessons were drawn from
 - [hardware.md](hardware.md) — the machine these lessons are specific to
 - [models.md](models.md) — how the model-selection lessons above played out in practice
-- [../adr/](../adr/) — where a lesson hardened into a stable, documented decision
 - [roadmap.md](roadmap.md) — where an open lesson turned into planned future work

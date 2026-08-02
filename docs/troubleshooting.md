@@ -162,4 +162,3 @@ sudo dnf install -y glslc spirv-headers-devel spirv-tools-devel
 - [architecture.md](architecture.md) — how these components fit together
 - [lessons-learned.md](lessons-learned.md) — the general takeaways drawn from these issues
 - [compatibility.md](compatibility.md) — which versions each issue above was found on
-- [../adr/](../adr/) — the stable decisions behind why these components are in the stack at all

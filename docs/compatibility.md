@@ -11,7 +11,7 @@ What this setup has actually been run against, not a general support statement. 
 | Open Terminal | `ghcr.io/open-webui/open-terminal:slim` (floating tag, not pinned) | Deployed via [`start-open-terminal.sh`](../start-open-terminal.sh). Same floating-tag caveat as above. |
 | `llama.cpp` (Fedora) | Built from source, Vulkan backend (`GGML_VULKAN=ON`) | Commit/tag in use not currently recorded — see [hardware.md](hardware.md#why-models-and-llamacpp-arent-in-git). |
 | `llama.cpp` (Windows) | Precompiled Vulkan release, upgraded b9305 → b10107 | See [benchmarks.md](benchmarks.md#build-upgrade-impact-windows-b9305--b10107) for the re-verification after upgrade. |
-| Vulkan | TODO — SDK/driver version not recorded | Backend confirmed working via GPU-resident inference (low RSS) on both OSes; see [adr/0004-vulkan-backend.md](../adr/0004-vulkan-backend.md). |
+| Vulkan | TODO — SDK/driver version not recorded | Backend confirmed working via GPU-resident inference (low RSS) on both OSes; see [JOURNAL.md](../JOURNAL.md). |
 | Intel graphics driver | TODO — Mesa/`i915` version not recorded | Relevant to the fence-timeout bug in [troubleshooting.md](troubleshooting.md#i915-igpu-fence-timeout--gpu-hangs); worth recording if that bug is ever revisited upstream. |
 | Tailscale | 1.98.8 (Fedora, installed from Fedora's own repos) | See [SETUP.md](../SETUP.md) for the firewalld zone configuration needed alongside it. |
 

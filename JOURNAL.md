@@ -1,6 +1,6 @@
 # Local AI Journal
 
-Running log of changes, fixes, and incidents for the `~/LocalAI` (and `C:\LocalAI`) setup. Newest entries at the top. For static reference (hardware, models, flags), see [SETUP.md](SETUP.md). For the polished, structured version of recurring issues, see [docs/troubleshooting.md](docs/troubleshooting.md); for distilled takeaways, see [docs/lessons-learned.md](docs/lessons-learned.md); for the stable decisions that came out of this history, see [adr/](adr/); for the same history as a version-history summary, see [CHANGELOG.md](CHANGELOG.md).
+Running log of changes, fixes, and incidents for the `~/LocalAI` (and `C:\LocalAI`) setup. Newest entries at the top. For static reference (hardware, models, flags), see [SETUP.md](SETUP.md). For the polished, structured version of recurring issues, see [docs/troubleshooting.md](docs/troubleshooting.md); for distilled takeaways, see [docs/lessons-learned.md](docs/lessons-learned.md). This journal is the single source of truth for *why* — there's no separate ADR or changelog layer restating it.
 
 **Entry format going forward** (not retroactively applied to entries below — this is a template for new ones, added per [AGENTS.md](AGENTS.md)'s documentation-update rules):
 
@@ -14,6 +14,22 @@ Running log of changes, fixes, and incidents for the `~/LocalAI` (and `C:\LocalA
 > **Next steps**: anything left open.
 
 Older entries below predate this template and stay in their original free-form narrative style — don't retroactively reformat them, per [AGENTS.md](AGENTS.md#repository-philosophy) (the journal's honesty about the actual investigative process is the point, not a fixed structure).
+
+---
+
+## 2026-08-02 — Removed OSS-governance scaffolding to keep the repo positioned as a one-maintainer notebook
+
+**Goal**: the 2026-07-31 "repository polish" pass had added process scaffolding sized for a team project (formal ADRs, a semver-style changelog, issue templates with self-certification questions, a docs-lint CI pipeline, a GitHub-configuration checklist covering branch protection/Discussions/release strategy) onto a repo that is, and has only ever been, one person's local setup. Asked to strip that back down to match reality.
+
+**Changes**: removed `adr/` (4 ADRs + index), `CHANGELOG.md`, `.github/ISSUE_TEMPLATE/` (4 templates + config), `.github/workflows/docs-lint.yml`, `.markdownlint.jsonc`, `lychee.toml`, and `docs/github-setup.md`. Rewrote `CONTRIBUTING.md` and `SECURITY.md` from multi-section documents down to a few paragraphs each — kept the substance (what corrections are welcome, the documented network-exposure trade-offs) and cut the ceremony (formal workflow steps, vulnerability-report SLA language, "Code of Conduct" heading). Fixed every cross-link left dangling by the deletions across README.md, SETUP.md, AGENTS.md, and docs/architecture.md, docs/hardware.md, docs/lessons-learned.md, docs/models.md, docs/roadmap.md, docs/troubleshooting.md, docs/compatibility.md — all now point at JOURNAL.md instead, since that's where the actual reasoning already lived (ADRs were explicitly "distilled from" it, per the now-deleted `adr/README.md`).
+
+**Results**: `grep -rl "adr/\|CHANGELOG\|docs-lint\|markdownlint\|lychee\|ISSUE_TEMPLATE\|github-setup" --include="*.md" .` (excluding `llama.cpp/`) now only matches this journal's own historical entries, which is expected and correct — they're accurate records of what existed at the time and aren't retroactively edited.
+
+**Problems**: none. This is a documentation-only removal; nothing about the running setup changed.
+
+**Lessons**: it's easy for a "polish" pass focused on making a repo look complete to drift into making it look like something it isn't (a maintained team project) — worth checking new documentation against "does a solo maintainer actually need this" before adding process scaffolding, not just "would a professional OSS repo have this."
+
+**Next steps**: none opened by this pass.
 
 ---
 

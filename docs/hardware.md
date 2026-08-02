@@ -53,4 +53,3 @@ Both directories exist locally once the setup steps in [SETUP.md](../SETUP.md) a
 - [models.md](models.md) — models tested on this hardware, compared
 - [lessons-learned.md](lessons-learned.md) — practical findings this hardware's constraints produced
 - [compatibility.md](compatibility.md) — exact tested OS/driver versions
-- [../adr/0001-fedora-over-windows.md](../adr/0001-fedora-over-windows.md) · [../adr/0004-vulkan-backend.md](../adr/0004-vulkan-backend.md) — the stable decisions this hardware drove

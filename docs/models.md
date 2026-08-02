@@ -1,6 +1,6 @@
 # Model Comparison
 
-Every model tested on this setup, summarized. Flag-by-flag configuration lives in [SETUP.md](../SETUP.md); the reasoning behind each choice is in [JOURNAL.md](../JOURNAL.md). Speed figures in [benchmarks.md](benchmarks.md); the hardware these numbers came from is in [hardware.md](hardware.md). The production/agent-model decision is also captured formally in [adr/0002-qwen3-model-choice.md](../adr/0002-qwen3-model-choice.md).
+Every model tested on this setup, summarized. Flag-by-flag configuration lives in [SETUP.md](../SETUP.md); the reasoning behind each choice is in [JOURNAL.md](../JOURNAL.md). Speed figures in [benchmarks.md](benchmarks.md); the hardware these numbers came from is in [hardware.md](hardware.md).
 
 | Model | Purpose | Quant | RAM/GPU Usage | Speed | Quality | Strengths | Weaknesses | Recommendation |
 |---|---|---|---|---|---|---|---|---|
@@ -24,5 +24,4 @@ The abliterated model selection (see [JOURNAL.md](../JOURNAL.md), 2026-07-30 ent
 - [benchmarks.md](benchmarks.md) — full performance numbers behind the Speed column above
 - [hardware.md](hardware.md) — the machine every model here was run on
 - [troubleshooting.md](troubleshooting.md) — issues specific to individual models
-- [../adr/0002-qwen3-model-choice.md](../adr/0002-qwen3-model-choice.md) — the formal record of the production-model decision
 - [SETUP.md](../SETUP.md) — flag-by-flag configuration for every model

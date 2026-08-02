@@ -115,10 +115,8 @@ LocalAI/
 ├── start-searxng.sh              # self-hosted metasearch, backs Open WebUI's Web Search toggle, rootless Podman
 ├── start-metube.sh               # yt-dlp browser UI, rootless Podman
 ├── docs/                         # topic-specific reference docs and screenshots (see Documentation below)
-├── adr/                          # architecture decision records — stable decisions, not chronological history
 ├── SETUP.md                      # hardware, flags, models, full technical reference
-├── JOURNAL.md                    # dated log of every change, fix, and incident
-├── CHANGELOG.md                  # version history of this repository
+├── JOURNAL.md                    # dated log of every change, fix, and incident — the source of truth
 └── AGENTS.md                     # conventions for AI coding agents working in this repo
 ```
 
@@ -160,10 +158,7 @@ Full numbers, multi-turn cache-reuse data, and agent-mode round-trip timings: [`
 | [`docs/lessons-learned.md`](docs/lessons-learned.md) | Practical conclusions from real experimentation, by topic |
 | [`docs/roadmap.md`](docs/roadmap.md) | Completed / upcoming / future-idea work, in more detail than below |
 | [`docs/compatibility.md`](docs/compatibility.md) | Tested versions of every OS/tool in the stack |
-| [`docs/github-setup.md`](docs/github-setup.md) | Manual GitHub configuration checklist (topics, social preview, releases) |
-| [`adr/`](adr/) | Architecture Decision Records — why the stable, load-bearing choices were made |
 | [`JOURNAL.md`](JOURNAL.md) | Dated running log — newest entries first, the historical source of truth |
-| [`CHANGELOG.md`](CHANGELOG.md) | Version history of this repository itself |
 | [`AGENTS.md`](AGENTS.md) | Conventions for AI coding agents working in this repo |
 | [`llama.cpp/AGENTS.md`](llama.cpp/AGENTS.md) | Upstream contribution rules (only relevant inside `llama.cpp/`) |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How to propose changes to this repo |
