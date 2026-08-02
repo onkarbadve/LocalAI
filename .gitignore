@@ -2,3 +2,4 @@ models/
 llama.cpp/
 .claude/
 *.backup-*
+linkedin-post.md

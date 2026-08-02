@@ -24,7 +24,7 @@ This is the full flag-by-flag reference. For narrower, topic-specific docs, see 
 - `start-qwen3-uncensored.sh` — abliterated Qwen3-4B-Instruct-2507 (arnomatic/heretic-av2), separate blunt/direct-assistant role, port 8081, see below
 - `start-open-webui.sh` — launches Open WebUI (Podman container) as a chat frontend, see below
 - `start-open-terminal.sh` — launches Open Terminal (Podman container), a shell/file API wired into Open WebUI as an Integration, see below
-- `linkedin-post.md` — write-up of the Windows→Linux port
+- `linkedin-post.md` — write-up of the Windows→Linux port (local only, gitignored)
 - `SETUP.md` — this document
 
 **Windows (`C:\LocalAI`)**

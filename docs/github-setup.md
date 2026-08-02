@@ -24,7 +24,7 @@ The image shown when this repo's link is shared (Slack, Twitter/X, Discord, etc.
 
 ## Homepage URL
 
-The link shown next to the description on the repo home page, set in the same **About** panel as topics. This repo has no hosted deployment (it documents a personal, single-machine setup), so leave it unset or point it at the LinkedIn write-up ([`linkedin-post.md`](../linkedin-post.md)) if a public link is wanted.
+The link shown next to the description on the repo home page, set in the same **About** panel as topics. This repo has no hosted deployment (it documents a personal, single-machine setup), so leave it unset or point it at the published LinkedIn write-up if a public link is wanted.
 
 ## Release strategy
 

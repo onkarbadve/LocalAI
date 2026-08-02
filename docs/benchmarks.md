@@ -9,7 +9,7 @@ Real numbers observed during actual use and testing on the [hardware documented 
 | Qwen3-4B-Instruct-2507 | Unsloth Dynamic Q4_K_XL | 24576 | ~9–9.8 tok/s | ~28 tok/s warm, ~2.5 tok/s cold-start (first request after boot) | ~530MB (confirms GPU-resident, not CPU) | ~6GB (documented, solo) | Production chat/coding/agent model. Port 8080. |
 | Qwen3-4B-Instruct-2507-heretic-av2 (abliterated) | mradermacher Q4_K_M | 24576 | ~11.58 tok/s generation | ~34 tok/s prompt processing | TODO | ~6GB (same base model, same context) | Blunt/direct assistant. Port 8081. Verified genuine Vulkan execution (not CPU/llvmpipe fallback). |
 | Gemma 4 E4B-it + mmproj | Unsloth Dynamic Q4_K_XL | 8192 (reduced from 16384) | ~9–9.8 tok/s | ~28 tok/s warm, ~2.5 tok/s cold-start | TODO | TODO | Deprioritized — vision fallback, not actively used. |
-| Qwen2.5-Coder-1.5B *(Windows only)* | Q4_K_M | 4096 | ~25 tok/s (per `linkedin-post.md`) | TODO | TODO | full offload, `-ngl 99` | Autocomplete only. |
+| Qwen2.5-Coder-1.5B *(Windows only)* | Q4_K_M | 4096 | ~25 tok/s (per author's notes) | TODO | TODO | full offload, `-ngl 99` | Autocomplete only. |
 
 ## Cold start
 

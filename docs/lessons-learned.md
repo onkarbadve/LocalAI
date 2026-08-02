@@ -1,6 +1,6 @@
 # Lessons Learned
 
-Practical conclusions drawn from real experimentation on this setup — not general advice, specific to what was actually observed here. Sourced from [JOURNAL.md](../JOURNAL.md), [SETUP.md](../SETUP.md), and [linkedin-post.md](../linkedin-post.md). See [troubleshooting.md](troubleshooting.md) for the issues these lessons came out of, and [hardware.md](hardware.md) for the machine they were observed on.
+Practical conclusions drawn from real experimentation on this setup — not general advice, specific to what was actually observed here. Sourced from [JOURNAL.md](../JOURNAL.md) and [SETUP.md](../SETUP.md). See [troubleshooting.md](troubleshooting.md) for the issues these lessons came out of, and [hardware.md](hardware.md) for the machine they were observed on.
 
 ## Performance
 

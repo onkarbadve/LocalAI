@@ -5,4 +5,4 @@ Dual-OS (Windows + Fedora) local LLM serving setup, built around llama.cpp. See 
 - `llama.cpp/` - built from source (Vulkan backend). It's an upstream checkout with its own [AGENTS.md](llama.cpp/AGENTS.md) contribution rules - only read that file when actually working inside `llama.cpp/`, not for unrelated tasks in this directory.
 - `models/`, `start-*.sh` - GGUF models and launch scripts, referenced in SETUP.md.
 - `docs/` - topic-specific reference docs (architecture, hardware, models, benchmarks, troubleshooting, lessons learned) extracted from README/SETUP/JOURNAL.
-- `linkedin-post.md` - write-up of the Windows to Linux port.
+- `linkedin-post.md` - write-up of the Windows to Linux port. Local only (gitignored), not pushed to remote.
