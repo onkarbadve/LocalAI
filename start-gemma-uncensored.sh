@@ -62,6 +62,10 @@
 # 4.8GB) - do the memory math before running two servers at once rather
 # than assuming it fits.
 
+# -t 8: taskset -c 0-7 pinning was considered and benchmarked as a wash on
+# this GPU-offloaded path (real cost in the CPU-fallback path instead) - see
+# start-qwen3.sh for the full rationale. Not applied.
+
 BIN="$HOME/LocalAI/llama.cpp/build/bin/llama-server"
 MODEL="$HOME/LocalAI/models/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf"
 

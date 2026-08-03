@@ -14,6 +14,7 @@ This is the full flag-by-flag reference. For narrower, topic-specific docs, see 
 | Current OS | Fedora 44 (`~/LocalAI`) |
 | Prior OS | Windows (`C:\LocalAI`, preserved on a ~340GB NTFS partition, `/dev/nvme0n1p3` — not mounted by default; mount read-only at `/mnt/winc` to inspect) |
 | Inference engine | llama.cpp, Vulkan backend (`GGML_VULKAN=ON`) |
+| Secondary inference engine (evaluated) | OpenVINO Model Server (OVMS), Intel GPU plugin — separate driver stack (`intel-compute-runtime`/`intel-opencl`/`intel-level-zero`) from the Mesa Vulkan driver above; see [docs/hardware.md](docs/hardware.md) |
 
 ## Directory layout
 
@@ -22,8 +23,13 @@ This is the full flag-by-flag reference. For narrower, topic-specific docs, see 
 - `models/` — `Qwen3-4B-Instruct-2507-UD-Q4_K_XL.gguf`, `gemma-4-E4B-it-UD-Q4_K_XL.gguf`, `mmproj-F16.gguf`, `Qwen3-4B-Instruct-2507-heretic-av2.Q4_K_M.gguf`
 - `start-qwen3.sh`, `start-gemma-e4b.sh` — llama.cpp launch scripts
 - `start-qwen3-uncensored.sh` — abliterated Qwen3-4B-Instruct-2507 (arnomatic/heretic-av2), separate blunt/direct-assistant role, port 8081, see below
+- `start-gemma-uncensored.sh` — abliterated Gemma variant (Gemma-4-E4B-Uncensored-HauhauCS-Aggressive), own port 8082, mutually exclusive with the above
 - `start-open-webui.sh` — launches Open WebUI (Podman container) as a chat frontend, see below
 - `start-open-terminal.sh` — launches Open Terminal (Podman container), a shell/file API wired into Open WebUI as an Integration, see below
+- `start-searxng.sh` — self-hosted metasearch (Podman container), backs Open WebUI's Web Search toggle, port 8888
+- `start-metube.sh` — yt-dlp browser UI (Podman container), standalone, port 8083
+- `start-ovms-qwen3-8b.sh` — Qwen3-8B (OpenVINO IR, INT4) via OpenVINO Model Server, port 8084 — **evaluated secondary backend, not in daily use**, see [Alternative backend: OpenVINO / OVMS](#alternative-backend-openvino--ovms-evaluated-not-in-daily-use) below
+- `openvino-test/` — gitignored (11GB+): Python venv (`openvino`, `openvino-genai`, `huggingface_hub`), converted OpenVINO IR models (`tinyllama-int4-ov`, `qwen3-8b-int4-ov`), `benchmark.py`, and `ov_cache/` (compiled-kernel cache). See JOURNAL.md 2026-08-02/03.
 - `linkedin-post.md` — write-up of the Windows→Linux port (local only, gitignored)
 - `SETUP.md` — this document
 
@@ -176,6 +182,29 @@ Five MCP servers via `mcp_proxy` (streamablehttp transport), backing a coding-ag
 | Shell (`super-shell-mcp`) | 3005 | — |
 
 Not yet ported to Fedora.
+
+## Alternative backend: OpenVINO / OVMS (evaluated, not in daily use)
+
+Explored 2026-08-02/03 as a second inference backend alongside llama.cpp/Vulkan — how it compares, whether it's faster on this iGPU, what it'd take to actually use it. **Not the daily driver**: no model here is wired into Open WebUI, and nothing runs unless started manually. Kept scripted and documented because the evaluation produced real, reusable findings (see [JOURNAL.md](JOURNAL.md) 2026-08-02/03 and [docs/lessons-learned.md](docs/lessons-learned.md)).
+
+| Model | IR source | Speed (iGPU, GPU-only) | Status |
+|---|---|---|---|
+| Qwen3-8B | `OpenVINO/Qwen3-8B-int4-ov` (HF, calibrated) | ~11.12–11.51 tok/s | Evaluated — `start-ovms-qwen3-8b.sh`, port 8084 |
+| TinyLlama-1.1B-Chat | community int4-ov conversion | ~61.34 ± 5.55 tok/s | Evaluated, one-off — launched by hand (see JOURNAL.md 2026-08-03), no dedicated script yet |
+
+### Qwen3-8B via OVMS (`start-ovms-qwen3-8b.sh`)
+
+Rootless Podman container (`docker.io/openvino/model_server:latest-gpu`), OpenAI-compatible API on port 8084.
+
+- `--device /dev/dri`, `--target_device GPU`: runs on the iGPU, not CPU.
+- `:Z` on the bind mount: same SELinux relabeling reasoning as `start-metube.sh` — a bind-mounted host directory keeps `user_home_t` otherwise, which the container process is confined away from.
+- `--reasoning_parser qwen3 --tool_parser hermes3`: Qwen3-8B is a hybrid thinking model; without these, `<think>` blocks and tool calls land as raw text in `content` instead of structured `reasoning_content`/`tool_calls`.
+- No `--cache_dir` set: the model directory is mounted read-only, so a cache path under it isn't writable (harmless warning, falls back to recompiling kernels each load, ~13s cold).
+- Callers should send `chat_template_kwargs: {"enable_thinking": false}` unless a `<think>` pass is wanted — JOURNAL.md 2026-08-02 measured 40–110s vs ~1.3s per request depending on this.
+- **Confirmed no CPU+iGPU split is possible for a single request** on this stack — see JOURNAL.md 2026-08-03: `HETERO:GPU,CPU` and `AUTO:GPU,CPU` both resolve to `EXECUTION_DEVICES: ['GPU.0']` only, for both this model and TinyLlama.
+- Port 8084: 8080–8082 are the llama-server scripts, 8083 is MeTube, 8888 is SearXNG, 3000 is Open WebUI, 8000 is Open Terminal.
+
+Not run concurrently with anything on port 8084 (i.e. only one OVMS-served model at a time). Independent of the llama.cpp servers' port 8080/8081/8082 mutual exclusivity — different processes, different ports — but see the UMA note in [docs/hardware.md](docs/hardware.md): this iGPU shares system RAM, so running an OVMS model and a llama.cpp model simultaneously still competes for the same 16GB pool, just not for the same port.
 
 ## Issues encountered and resolutions
 

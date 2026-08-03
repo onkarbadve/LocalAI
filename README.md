@@ -114,6 +114,7 @@ LocalAI/
 ├── start-open-terminal.sh        # shell/file API for the models, rootless Podman
 ├── start-searxng.sh              # self-hosted metasearch, backs Open WebUI's Web Search toggle, rootless Podman
 ├── start-metube.sh               # yt-dlp browser UI, rootless Podman
+├── start-ovms-qwen3-8b.sh        # Qwen3-8B via OpenVINO Model Server — evaluated backend, not the daily driver
 ├── docs/                         # topic-specific reference docs and screenshots (see Documentation below)
 ├── SETUP.md                      # hardware, flags, models, full technical reference
 ├── JOURNAL.md                    # dated log of every change, fix, and incident — the source of truth
@@ -143,7 +144,7 @@ Not yet captured — placeholders below and capture checklist in [`docs/images/`
 | Gemma 4 E4B-it + mmproj | Q4_K_XL | 8192 | ~9–9.8 tok/s | TODO | TODO | Deprioritized fallback |
 | Gemma-4-E4B-Uncensored-HauhauCS-Aggressive | Q4_K_P | 16384 | ~7.4 tok/s gen, ~41 tok/s prompt | TODO | ~5.3GB | Blunt/direct, port 8082 |
 
-Full numbers, multi-turn cache-reuse data, and agent-mode round-trip timings: [`docs/benchmarks.md`](docs/benchmarks.md).
+Full numbers, multi-turn cache-reuse data, and agent-mode round-trip timings: [`docs/benchmarks.md`](docs/benchmarks.md). An OpenVINO/OVMS backend was also evaluated on the same iGPU (not the daily driver) — see the [OpenVINO section there](docs/benchmarks.md#openvino--ovms-evaluated-backend-not-in-daily-use).
 
 ## Documentation
 

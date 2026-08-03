@@ -30,6 +30,8 @@ If your machine has a discrete GPU, most of the CUDA/ROCm-specific tuning ecosys
 
 There is no discrete GPU anywhere in this setup. Every model runs on the integrated GPU via Vulkan, sharing system RAM as VRAM. That constraint shapes almost every decision documented here — quantization choices, context sizes, `--mlock` vs mmap, and the iGPU fence-timeout issue in [troubleshooting.md](troubleshooting.md).
 
+This is a unified memory architecture (UMA): "GPU memory" is not a separate physical pool, it's system RAM allocated by the driver (Mesa/`i915` for Vulkan, or the `intel-compute-runtime`/`intel-opencl`/`intel-level-zero` stack for OpenVINO's GPU plugin — installed 2026-08-02 as a second, separate driver stack alongside Mesa, needed because OpenVINO couldn't see the iGPU at all under Vulkan's driver alone). Practical consequence: anything that holds two device-resident model copies at once competes for the same 16GB budget the CPU also needs, in a way a discrete-GPU machine with separate VRAM would not — see the OOM in [troubleshooting.md](troubleshooting.md#compiling-multiple-openvino-device-configs-in-one-process-without-releasing-the-prior-one--oom).
+
 ## Windows vs Fedora
 
 Windows (`C:\LocalAI`) was the original setup; Fedora (`~/LocalAI`) is the current daily driver, ported from it partly to reclaim RAM Windows was holding onto. The Windows install is preserved on a ~340GB NTFS partition (`/dev/nvme0n1p3`, not mounted by default — mount read-only at `/mnt/winc` to inspect it) rather than wiped, since some tooling (the MCP server stack, the dual-server coding setup) hasn't been ported to Fedora yet.

@@ -14,6 +14,9 @@ What this setup has actually been run against, not a general support statement. 
 | Vulkan | TODO — SDK/driver version not recorded | Backend confirmed working via GPU-resident inference (low RSS) on both OSes; see [JOURNAL.md](../JOURNAL.md). |
 | Intel graphics driver | TODO — Mesa/`i915` version not recorded | Relevant to the fence-timeout bug in [troubleshooting.md](troubleshooting.md#i915-igpu-fence-timeout--gpu-hangs); worth recording if that bug is ever revisited upstream. |
 | Tailscale | 1.98.8 (Fedora, installed from Fedora's own repos) | See [SETUP.md](../SETUP.md) for the firewalld zone configuration needed alongside it. |
+| OpenVINO / `openvino-genai` | 2026.2.1-21919-ede283a88e3 | Evaluated secondary backend, not daily driver. See [SETUP.md](../SETUP.md#alternative-backend-openvino--ovms-evaluated-not-in-daily-use). |
+| `intel-compute-runtime` / `intel-opencl` / `intel-level-zero` (Fedora dnf packages) | 26.22.38646.6-4.fc44 | Separate GPU driver stack from the Mesa Vulkan driver above — needed for OpenVINO's GPU plugin to see the iGPU at all (`Core().available_devices` was `['CPU']` only beforehand). See [hardware.md](hardware.md). |
+| `docker.io/openvino/model_server` | `latest-gpu` tag (floating, image built 2026-06-17) | OVMS container image. Same floating-tag caveat as Open WebUI/Open Terminal above. |
 
 ## Why this exists
 

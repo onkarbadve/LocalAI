@@ -13,6 +13,7 @@ Where this setup has been and where it's headed. "Completed" and "Upcoming" are 
 - Set up Tailscale for remote access (phone, away from home) without port-forwarding or public exposure.
 - Selected and deployed a secondary, uncensored/blunt-mode model (`Qwen3-4B-Instruct-2507-heretic-av2`) via a documented, leaderboard-cross-checked evaluation process.
 - Full documentation overhaul: `docs/` reference set, `AGENTS.md`, open-source readiness files (`LICENSE`, `CONTRIBUTING.md`, `SECURITY.md`).
+- Evaluated OpenVINO/OVMS as a second inference backend on the iGPU (Qwen3-8B, TinyLlama-1.1B); confirmed a genuine CPU+iGPU split isn't possible for a single request in this stack; wrote `start-ovms-qwen3-8b.sh` (see [JOURNAL.md](../JOURNAL.md), 2026-08-02/03). Evaluated only — not wired into Open WebUI, not the daily driver.
 
 ## Upcoming
 
@@ -32,6 +33,8 @@ Smaller open items, not folded into a chapter above:
 - Revisit Qwen3.5-4B once its upstream caching bug (`ggml-org/llama.cpp#21831`) is fixed.
 - Reconsider `--mlock` on Fedora if ever moving to higher-RAM hardware (would need raising systemd's `LimitMEMLOCK`).
 - A small supervisor/menu script for day-to-day model switching, narrower in scope than the self-healing chapter above.
+- Decide whether to pursue an `optimum-intel` conversion of the actual production Unsloth-quant models, for a true apples-to-apples benchmark against OpenVINO rather than comparing across differently-sourced IRs (see [JOURNAL.md](../JOURNAL.md), 2026-08-02).
+- Disk cleanup: OpenVINO evaluation downloads (OVMS image, IR conversions, `ov_cache/`) left this box short on free space as of 2026-08-02 — worth checking before adding more.
 
 ## Future Ideas
 

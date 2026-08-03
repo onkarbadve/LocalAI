@@ -41,7 +41,10 @@
 # --swa-full: without this, multi-turn requests reprocess the entire
 # conversation from scratch every turn (see ggml-org/llama.cpp#22288) - this
 # build has the fix, but it's still opt-in via this flag.
-# -t 8: matches the P-core thread count tuned on the Windows side.
+# -t 8: matches the P-core thread count tuned on the Windows side. Considered
+# `taskset -c 0-7` pinning here too but benchmarked it as a wash on this
+# GPU-offloaded path and a real cost in the CPU-fallback path - see
+# start-qwen3.sh for the full rationale. Not applied.
 # No --mlock: same reasoning as start-qwen3.sh - ulimit -l is 8MB on this box,
 # and the Windows testing already found mlock fought the OS under memory
 # pressure on this 16GB machine (crashed a browser once). mmap (default) lets

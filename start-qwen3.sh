@@ -27,7 +27,16 @@
 # all layers that fit - verified via low RSS (~530MB) after a real generation,
 # meaning the model lives in GPU memory, not process RAM.
 # -t 8: matches the P-core thread count already tuned on the Windows side for
-# this exact CPU.
+# this exact CPU. Considered wrapping with `taskset -c 0-7` (logical CPUs 0-7
+# are the 4 P-cores, confirmed via `lscpu -e`) for a harder affinity guarantee,
+# but benchmarked it directly (2026-08-02) and it's a wash here: with -ngl auto
+# putting all layers on the iGPU, these CPU threads are mostly idle waiting on
+# GPU submission, so pinning changed nothing (pp512/tg64 identical within
+# noise). It would also cost real memory bandwidth in the CPU-fallback path -
+# CPUs 0-7 are only 4 *physical* cores (0/1, 2/3, 4/5, 6/7 are SMT sibling
+# pairs), and confining to them measured ~22% less streaming bandwidth than
+# spreading across all 8 physical cores, which matters for this
+# bandwidth-bound workload if it ever falls back to CPU. Not applied.
 # -c 24576: same context size as the Windows script (~6GB VRAM budget, solo-server).
 # -fa on: flash attention, pinned explicit.
 # No --mlock / -lm mlock: this box's ulimit -l is only 8MB (default Fedora/PAM

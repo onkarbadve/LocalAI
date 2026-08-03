@@ -82,6 +82,10 @@
 # (KV cache scales with context; dropping to -c 4096 would cut this model's
 # footprint roughly in half) AND after the GPU-hang situation is calmer.
 
+# -t 8: taskset -c 0-7 pinning was considered and benchmarked as a wash on
+# this GPU-offloaded path (real cost in the CPU-fallback path instead) - see
+# start-qwen3.sh for the full rationale. Not applied.
+
 BIN="$HOME/LocalAI/llama.cpp/build/bin/llama-server"
 MODEL="$HOME/LocalAI/models/Qwen3-4B-Instruct-2507-heretic-av2.Q4_K_M.gguf"
 

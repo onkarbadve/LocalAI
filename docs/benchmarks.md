@@ -11,6 +11,20 @@ Real numbers observed during actual use and testing on the [hardware documented 
 | Gemma 4 E4B-it + mmproj | Unsloth Dynamic Q4_K_XL | 8192 (reduced from 16384) | ~9–9.8 tok/s | ~28 tok/s warm, ~2.5 tok/s cold-start | TODO | TODO | Deprioritized — vision fallback, not actively used. |
 | Qwen2.5-Coder-1.5B *(Windows only)* | Q4_K_M | 4096 | ~25 tok/s (per author's notes) | TODO | TODO | full offload, `-ngl 99` | Autocomplete only. |
 
+## OpenVINO / OVMS (evaluated backend, not in daily use)
+
+Measured via `openvino_genai`'s `PerfMetrics` API (5 timed runs + 1 warmup, greedy decoding) directly against the OpenVINO IR — not through the OVMS container's HTTP layer, though OVMS serves the same IR. See [SETUP.md](../SETUP.md#alternative-backend-openvino--ovms-evaluated-not-in-daily-use) for how these are launched.
+
+| Model | Device | Throughput | TTFT | Load time | Date |
+|---|---|---|---|---|---|
+| Qwen3-8B (int4-ov) | GPU (iGPU) | 11.12–11.51 tok/s | TODO | TODO | 2026-08-02 |
+| Qwen3-8B (int4-ov) | CPU | 7.56–7.64 tok/s | TODO | TODO | 2026-08-02 |
+| TinyLlama-1.1B-Chat (int4-ov) | GPU (iGPU) | 61.34 ± 5.55 tok/s | 57.0 ± 0.4 ms | ~3.6s | 2026-08-03 |
+
+**CPU+iGPU split confirmed not possible for a single request** (2026-08-03): compiled both models above with `HETERO:GPU,CPU` and `AUTO:GPU,CPU`; `compiled_model.get_property('EXECUTION_DEVICES')` returned `['GPU.0']` in every case — HETERO only reassigns ops to CPU when the GPU plugin can't run them, and both models are fully GPU-supported, so there's nothing to split. No mixed-device number exists to report here because there's no mixed-device execution happening.
+
+Not apples-to-apples across the two models: Qwen3-8B went through a proper calibrated `optimum-intel` IR conversion; TinyLlama's IR is a community conversion of unknown calibration rigor. Treat the ~5.5x throughput gap as roughly consistent with the ~7x parameter-count difference, not a precise ratio.
+
 ## Cold start
 
 | Platform | First load (fresh boot) | Warm restart |

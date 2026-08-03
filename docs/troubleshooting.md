@@ -155,6 +155,54 @@ sudo dnf install -y glslc spirv-headers-devel spirv-tools-devel
 
 ---
 
+## OVMS container: `Permission denied` reading mounted model files
+
+**Problem**: OpenVINO Model Server (OVMS, Podman) fails to read the bind-mounted model directory even though the host path and permissions look correct.
+
+**Cause**: SELinux, same root cause as MeTube's downloads mount — Fedora enforces by default, and a bind-mounted host directory keeps its `user_home_t` context, which a container process (`container_t`) is confined away from regardless of matching UID/GID.
+
+**Solution**: add `:Z` to the volume mount to relabel the path to `container_file_t`, private to that container: `-v /path/to/model:/models/name:ro,Z`. Already applied in `start-ovms-qwen3-8b.sh`.
+
+**Verification**: container logs reach `state changed to: AVAILABLE` instead of a permission error during model load.
+
+---
+
+## Podman rootless port forwarding: `curl http://localhost:PORT` resets, `127.0.0.1` works
+
+**Problem**: `curl http://localhost:8084/...` against a Podman-forwarded port fails with "Connection reset by peer" — for GET requests to the model-list endpoint (worked) and separately for streaming POST requests to a generate endpoint (failed differently) — while `curl http://127.0.0.1:8084/...` succeeds immediately for both.
+
+**Cause**: `localhost` resolves to `::1` (IPv6) first on this box, and Podman's rootless port-forwarding helper (`pasta`) only handles IPv4. Open WebUI hit the same bug from its own backend: its persisted connection URLs used `localhost`, so model-list calls (one code path) and generate calls (a separate code path) failed independently even after the first was traced and "fixed" — they're different request flows through the same underlying resolution bug, so fixing one doesn't fix the other.
+
+**Solution**: use `127.0.0.1` instead of `localhost` for any client — script, curl, or another service's config — talking to a Podman-forwarded port on this box.
+
+**Verification**: identical request succeeds against `127.0.0.1` and fails against `localhost` on the same running container.
+
+---
+
+## Open WebUI ignores `OPENAI_API_BASE_URLS` after first-ever container startup
+
+**Problem**: recreating the Open WebUI container with an updated `OPENAI_API_BASE_URLS`/`OPENAI_API_KEYS` env var has zero effect on the connections shown in the model picker.
+
+**Cause**: Open WebUI persists its connection list in its own sqlite DB (`config` table, `openai.api_base_urls`/`openai.api_keys`/`openai.api_configs` keys) once the data volume has prior state — the env var is only a seed for a brand-new volume, not a live override. Confirmed by reading `open_webui/routers/openai.py` and `open_webui/models/config.py` directly inside the container: `get_openai_runtime_config()` / `Config.get_many()` do a fresh DB read on every call, no caching layer, so the env var genuinely never gets consulted again after first init.
+
+**Solution**: update the `config` table's `openai.*` rows directly (a raw DB `UPDATE`) rather than recreating the container. Takes effect immediately, no restart needed, since the backend reads fresh from the DB every call.
+
+**Verification**: model-picker connections change immediately after the DB update, with no container restart.
+
+---
+
+## Compiling multiple OpenVINO device configs in one process without releasing the prior one → OOM
+
+**Problem**: a Python script that compiles the same model for one device string, then compiles it again for a second device string in the same process (e.g. testing `HETERO:GPU,CPU` then `AUTO:GPU,CPU` back to back) gets killed with no application-level error.
+
+**Cause**: each `core.compile_model()` call produces its own device-specific weight buffers; nothing releases the first compiled model just because a second compile starts. On this box's integrated GPU (UMA — no dedicated VRAM), "GPU memory" is system RAM allocated by the `i915` driver, so two ~4.8GB resident copies of an 8B-class model compete for the same 16GB pool the OS and everything else also needs. Confirmed via `dmesg`: `oom_reaper: reaped process <pid> (python)`.
+
+**Solution**: explicitly `del` (or let go out of scope, with a checked `gc.collect()` if needed) a compiled model before compiling the same weights again for a different device, when working with models large relative to available RAM on a UMA box. Not needed on a discrete-GPU machine, where a CPU copy and a GPU copy would live in genuinely separate memory pools.
+
+**Verification**: `free -h` / `dmesg` before and after — confirmed ~13GB free before, OOM during the second compile, ~13GB free again within seconds of the kill (no lasting damage).
+
+---
+
 ## Related documents
 
 - [SETUP.md](../SETUP.md) — current flags for every script

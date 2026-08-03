@@ -47,6 +47,7 @@ Static export of the diagram above, for viewers without Mermaid rendering: [`ima
 - **SearXNG (`:8888`)** — self-hosted metasearch, backs Open WebUI's Web Search toggle (`RAG_WEB_SEARCH_ENGINE=searxng`) so model-issued queries stay local instead of hitting a third-party search API. Loopback-only, same conservative default as Open Terminal — it's a backend JSON API with no auth in front of it, not meant for direct/LAN use.
 - **MeTube (`:8083`)** — browser UI for `yt-dlp`, sharing the same download folder as the CLI tool. Standalone: doesn't connect to Open WebUI or any `llama-server`, just runs on the same box under the same rootless-Podman/loopback-only pattern.
 - **Tailscale** — VPN overlay for remote access (phone, laptop away from home) without port-forwarding or public exposure. Open WebUI is reachable over the tailnet because `--network host` already binds it to `0.0.0.0:3000`; Open Terminal, SearXNG, and MeTube are deliberately *not* additionally exposed there.
+- **OpenVINO Model Server (evaluated, not pictured above)** — a second inference backend (`start-ovms-qwen3-8b.sh`, port 8084, Podman) evaluated as an alternative to llama.cpp/Vulkan. Deliberately not wired into Open WebUI and not part of the daily-driver architecture above — see [SETUP.md](../SETUP.md#alternative-backend-openvino--ovms-evaluated-not-in-daily-use) and [JOURNAL.md](../JOURNAL.md) (2026-08-02/03).
 
 ## Design decisions worth calling out
 
