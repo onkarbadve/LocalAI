@@ -29,7 +29,10 @@ This is the full flag-by-flag reference. For narrower, topic-specific docs, see 
 - `start-searxng.sh` — self-hosted metasearch (Podman container), backs Open WebUI's Web Search toggle, port 8888
 - `start-metube.sh` — yt-dlp browser UI (Podman container), standalone, port 8083
 - `start-ovms-qwen3-8b.sh` — Qwen3-8B (OpenVINO IR, INT4) via OpenVINO Model Server, port 8084 — **evaluated secondary backend, not in daily use**, see [Alternative backend: OpenVINO / OVMS](#alternative-backend-openvino--ovms-evaluated-not-in-daily-use) below
+- `start-ovms-qwen3.5-9b-text.sh` — Qwen3.5-9B text-only via OVMS on the iGPU, port 8085 — **registered as an Open WebUI connection** (a step further than Qwen3-8B above), see below
+- `start-ovms-qwen3.5-9b-vision.sh` — same model, CPU-only (P-cores pinned), port 8086, for image/vision requests routed around a GPU-specific hallucination bug — **written but never launched/tested**, see below
 - `openvino-test/` — gitignored (11GB+): Python venv (`openvino`, `openvino-genai`, `huggingface_hub`), converted OpenVINO IR models (`tinyllama-int4-ov`, `qwen3-8b-int4-ov`), `benchmark.py`, and `ov_cache/` (compiled-kernel cache). See JOURNAL.md 2026-08-02/03.
+- `ov-env/` — gitignored: separate Python venv (nightly `openvino`/`openvino-genai`/`openvino-tokenizers`) used to stand up Qwen3.5-9B directly via `openvino_genai` (`test_ov_qwen.py`) before it was wrapped in the OVMS scripts above. See JOURNAL.md 2026-08-04.
 - `linkedin-post.md` — write-up of the Windows→Linux port (local only, gitignored)
 - `SETUP.md` — this document
 
@@ -190,6 +193,8 @@ Explored 2026-08-02/03 as a second inference backend alongside llama.cpp/Vulkan 
 | Model | IR source | Speed (iGPU, GPU-only) | Status |
 |---|---|---|---|
 | Qwen3-8B | `OpenVINO/Qwen3-8B-int4-ov` (HF, calibrated) | ~11.12–11.51 tok/s | Evaluated — `start-ovms-qwen3-8b.sh`, port 8084 |
+| Qwen3.5-9B (text) | `OpenVINO/Qwen3.5-9B-int4-ov` (HF, pre-converted) | ~10.2–10.3 tok/s | Registered in Open WebUI — `start-ovms-qwen3.5-9b-text.sh`, port 8085, see below |
+| Qwen3.5-9B (vision, CPU) | same IR, `--target_device CPU` | not measured | Written, never launched/tested — `start-ovms-qwen3.5-9b-vision.sh`, port 8086, see below |
 | TinyLlama-1.1B-Chat | community int4-ov conversion | ~61.34 ± 5.55 tok/s | Evaluated, one-off — launched by hand (see JOURNAL.md 2026-08-03), no dedicated script yet |
 
 ### Qwen3-8B via OVMS (`start-ovms-qwen3-8b.sh`)
@@ -205,6 +210,27 @@ Rootless Podman container (`docker.io/openvino/model_server:latest-gpu`), OpenAI
 - Port 8084: 8080–8082 are the llama-server scripts, 8083 is MeTube, 8888 is SearXNG, 3000 is Open WebUI, 8000 is Open Terminal.
 
 Not run concurrently with anything on port 8084 (i.e. only one OVMS-served model at a time). Independent of the llama.cpp servers' port 8080/8081/8082 mutual exclusivity — different processes, different ports — but see the UMA note in [docs/hardware.md](docs/hardware.md): this iGPU shares system RAM, so running an OVMS model and a llama.cpp model simultaneously still competes for the same 16GB pool, just not for the same port.
+
+### Qwen3.5-9B via OVMS (`start-ovms-qwen3.5-9b-text.sh` + `start-ovms-qwen3.5-9b-vision.sh`)
+
+A step further than Qwen3-8B above: the text instance is registered as a real Open WebUI connection (`http://127.0.0.1:8085/v3`, model `qwen3.5-9b-text`), not just reachable by curl. Still not the daily driver — this is a second, deliberately separate chat option, not a replacement for the production llama.cpp models on 8080/8081/8082.
+
+**Two instances instead of one**, both from the same pre-converted IR (`OpenVINO/Qwen3.5-9B-int4-ov`, downloaded to `~/LocalAI/models/Qwen3.5-9B-int4-ov`, not exported locally):
+- **Text** (`start-ovms-qwen3.5-9b-text.sh`, port 8085): `--target_device GPU`, ~10.2–10.3 tok/s.
+- **Vision** (`start-ovms-qwen3.5-9b-vision.sh`, port 8086): `--target_device CPU`, pinned to this CPU's 4 P-cores only (`--cpuset-cpus 0-7`, confirmed via `lscpu -e` — CPUs 0-7 are the P-cores at 4500MHz/HT, 8-15 are E-cores at 3300MHz/no-HT). **Written but never actually launched or tested** — treat as unverified until it's run standalone.
+
+**Why two instances**: OVMS exposes only one `--target_device` per servable — there's no per-component (vision-encoder vs. language-model) device flag, and the earlier confirmed finding that `HETERO`/`AUTO` can't split a single request across devices on this stack (JOURNAL.md 2026-08-03) still holds. Qwen3.5-9B's GPU vision-merger path has a separate, real bug — silently hallucinated (not crashed) image descriptions, root-caused and filed upstream as [openvino#37223](https://github.com/openvinotoolkit/openvino/issues/37223) — so the only way to get correct vision answers right now is to keep vision off the GPU entirely. **Send text prompts to 8085, image/vision prompts to 8086** — there's no automatic routing between them.
+
+**Image**: `docker.io/openvino/model_server:weekly` (not `latest-gpu`) on both. Qwen3.5-9B's hybrid linear/full-attention GPU kernels needed OpenVINO nightly wheels to avoid `CL_OUT_OF_RESOURCES` ([openvino#36151](https://github.com/openvinotoolkit/openvino/issues/36151)); OVMS has no tag literally called "nightly", so `weekly` (built from `main`, refreshed every few days) is the closest equivalent. Confirmed working: same GPU driver stack and image size as `latest-gpu`, and the text instance reaches `AVAILABLE` with no `CL_OUT_OF_RESOURCES` — but OVMS's own release cadence for its bundled OpenVINO version is independent of the `openvino` PyPI nightly wheels, so this isn't guaranteed to stay true across `weekly` updates.
+
+**Tuning applied to the text instance** (JOURNAL.md 2026-08-04, tuning-pass entry):
+- `--cache_dir /cache` on a **named Podman volume** (`ovms-qwen3.5-9b-text-cache`), not a bind-mounted host directory — a bind mount failed with "not writable" (rootless Podman's UID mapping, same reason `open-webui-data`/`searxng-data` use named volumes). Cuts warm-restart time to the `AVAILABLE` state from ~26–43s (cold compile) to ~18s.
+- `--kv_cache_precision u8` and `--cache_size 2` (pins the KV cache pool at a static 2GB instead of the default dynamic/grow-on-demand allocation).
+- `--metrics_enable` — exposes `ovms_request_time_us`/`ovms_inference_time_us` on the REST port, same approach used to diagnose Qwen3-8B's thinking-mode slowness on 2026-08-02.
+- **Open item**: none of the above actually explained or moved the server's concurrency ceiling — empirically measured at ~15 concurrent requests admitted at once (`All requests`/`Scheduled requests` in the executor logs), regardless of cache size (disproved directly: a 4x larger static pool made no difference, using only 37.5% of it at the same ~15-request peak). `--nireq` is not usable in this CLI mode (`--task text_generation` rejects it outright; would need the `--config_path`/`subconfig.json` route). Cause still unidentified.
+- Beyond the ~15-request ceiling, additional requests queue gracefully (no errors, just wait for a slot) rather than being rejected — confirmed by bursting 32 concurrent requests and getting 32 successful responses.
+
+**Reasoning-model caveat**: same `chat_template_kwargs: {"enable_thinking": false}` consideration as Qwen3-8B above (it's a hybrid thinking model too) — but here it's sharper than a latency issue. Observed via real use: with an open-ended system prompt ("speak caveman") and trivial input ("hi"), it spent 6 minutes in a repeated self-doubt loop in its `<think>` trace before answering, versus ~9s on a deterministic math question. Open-ended/creative prompts have no verifiable "done" signal for the chain-of-thought to converge on, unlike math — a real failure mode, not just a slowdown. Setting `enable_thinking:false` as a default custom parameter on the `qwen3.5-9b-text` model in Open WebUI (Workspace → Models → Advanced Params → Add Custom Parameter, name `chat_template_kwargs`, value `{"enable_thinking": false}`) is the fix; **not confirmed applied/saved** as of this writing.
 
 ## Issues encountered and resolutions
 

@@ -203,6 +203,18 @@ sudo dnf install -y glslc spirv-headers-devel spirv-tools-devel
 
 ---
 
+## Qwen3.5-9B vision output is hallucinated on GPU, not just imprecise
+
+**Problem**: asking Qwen3.5-9B (OpenVINO IR, GPU) to describe a real image returns well-formed, grammatical, confidently-wrong text with no crash or exception — e.g. describing this repo's own architecture diagram (a flowchart with named boxes and labeled arrows) as "a grid of identical-looking boxes... woven fabric... soil sample... filter media." Throughput/TTFT numbers look completely normal; only comparing the output against the actual image content reveals the bug.
+
+**Cause**: FP16 precision issue in the vision-embeddings merger's graph execution on the GPU plugin specifically — confirmed by rerunning the identical model/image/prompt on CPU, which produced a near-perfect description (correct box names, correct port numbers, correct arrow labels). A structurally similar bug was already fixed upstream for Qwen2.5-VL ([openvino#33491](https://github.com/openvinotoolkit/openvino/pull/33491)/[#33880](https://github.com/openvinotoolkit/openvino/pull/33880), an FP16-overflow-into-NaN issue in that model's SwiGLU/RMSNorm merger block), but checking the exported IR directly (`grep -c` on `openvino_vision_embeddings_merger_model.xml`) found zero `Swish`/`RMS` ops — Qwen3.5's merger uses MVN + GELU, a structurally different graph the existing fix's pattern-matcher doesn't cover.
+
+**Solution**: none available yet — filed upstream as [openvino#37223](https://github.com/openvinotoolkit/openvino/issues/37223) with full repro, side-by-side GPU/CPU output, and the IR-grep evidence; unowned as of 2026-08-04. The practical workaround used in this repo: route vision requests to CPU only, never GPU — see `start-ovms-qwen3.5-9b-vision.sh` in [SETUP.md](../SETUP.md#qwen35-9b-via-ovms-start-ovms-qwen35-9b-textsh--start-ovms-qwen35-9b-visionsh). A blanket `INFERENCE_PRECISION_HINT=ov.Type.f32` fix attempt OOM-killed the process during model compilation on this 15Gi UMA box before it could even be tested for correctness, so full-precision GPU inference isn't a viable workaround here either.
+
+**Verification**: same model, same image, same prompt — GPU output bears no relation to the real image; CPU output is accurate. Confirms GPU-specific, not a preprocessing bug (image-loading code double-checked against the official `openvino.genai` sample).
+
+---
+
 ## Related documents
 
 - [SETUP.md](../SETUP.md) — current flags for every script

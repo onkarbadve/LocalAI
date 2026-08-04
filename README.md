@@ -115,6 +115,8 @@ LocalAI/
 ├── start-searxng.sh              # self-hosted metasearch, backs Open WebUI's Web Search toggle, rootless Podman
 ├── start-metube.sh               # yt-dlp browser UI, rootless Podman
 ├── start-ovms-qwen3-8b.sh        # Qwen3-8B via OpenVINO Model Server — evaluated backend, not the daily driver
+├── start-ovms-qwen3.5-9b-text.sh    # Qwen3.5-9B text via OVMS (GPU) — registered as an Open WebUI connection
+├── start-ovms-qwen3.5-9b-vision.sh  # same model, CPU-only — written, never launched/tested
 ├── docs/                         # topic-specific reference docs and screenshots (see Documentation below)
 ├── SETUP.md                      # hardware, flags, models, full technical reference
 ├── JOURNAL.md                    # dated log of every change, fix, and incident — the source of truth

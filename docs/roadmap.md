@@ -14,6 +14,7 @@ Where this setup has been and where it's headed. "Completed" and "Upcoming" are 
 - Selected and deployed a secondary, uncensored/blunt-mode model (`Qwen3-4B-Instruct-2507-heretic-av2`) via a documented, leaderboard-cross-checked evaluation process.
 - Full documentation overhaul: `docs/` reference set, `AGENTS.md`, open-source readiness files (`LICENSE`, `CONTRIBUTING.md`, `SECURITY.md`).
 - Evaluated OpenVINO/OVMS as a second inference backend on the iGPU (Qwen3-8B, TinyLlama-1.1B); confirmed a genuine CPU+iGPU split isn't possible for a single request in this stack; wrote `start-ovms-qwen3-8b.sh` (see [JOURNAL.md](../JOURNAL.md), 2026-08-02/03). Evaluated only — not wired into Open WebUI, not the daily driver.
+- Stood up Qwen3.5-9B via OVMS as a second, real Open WebUI connection (`start-ovms-qwen3.5-9b-text.sh`, GPU, port 8085) plus a written-but-untested CPU/vision counterpart (`start-ovms-qwen3.5-9b-vision.sh`, port 8086) to route around a GPU-only vision hallucination bug found and filed upstream ([openvino#37223](https://github.com/openvinotoolkit/openvino/issues/37223)). Found a real thinking-loop behavioral bug via actual use (open-ended prompts causing minutes-long `<think>` loops), applied cache/precision tuning, and measured (but didn't identify the cause of) a ~15-concurrent-request ceiling (see [JOURNAL.md](../JOURNAL.md), 2026-08-04, both entries).
 
 ## Upcoming
 
@@ -35,6 +36,10 @@ Smaller open items, not folded into a chapter above:
 - A small supervisor/menu script for day-to-day model switching, narrower in scope than the self-healing chapter above.
 - Decide whether to pursue an `optimum-intel` conversion of the actual production Unsloth-quant models, for a true apples-to-apples benchmark against OpenVINO rather than comparing across differently-sourced IRs (see [JOURNAL.md](../JOURNAL.md), 2026-08-02).
 - Disk cleanup: OpenVINO evaluation downloads (OVMS image, IR conversions, `ov_cache/`) left this box short on free space as of 2026-08-02 — worth checking before adding more.
+- Confirm `enable_thinking:false` actually got saved as a custom param on `qwen3.5-9b-text` in Open WebUI, then re-verify the "speak caveman" + "hi" thinking-loop repro no longer takes minutes.
+- Launch and test `start-ovms-qwen3.5-9b-vision.sh` standalone (with the GPU/text instance stopped, to avoid the OOM class from 2026-08-03) — written 2026-08-04, never actually run.
+- Identify the real cause of `qwen3.5-9b-text`'s ~15-concurrent-request ceiling — cache pool size was tested directly and ruled out; `--max_num_batched_tokens` and the `--config_path`/`subconfig.json` route (to reach `--nireq`) are untried next steps.
+- Apply the `--cache_dir`-on-named-volume pattern (proven for `qwen3.5-9b-text`) to `start-ovms-qwen3-8b.sh`, which still recompiles kernels from scratch on every cold start.
 
 ## Future Ideas
 

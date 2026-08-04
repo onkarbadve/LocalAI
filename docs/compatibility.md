@@ -16,7 +16,7 @@ What this setup has actually been run against, not a general support statement. 
 | Tailscale | 1.98.8 (Fedora, installed from Fedora's own repos) | See [SETUP.md](../SETUP.md) for the firewalld zone configuration needed alongside it. |
 | OpenVINO / `openvino-genai` | 2026.2.1-21919-ede283a88e3 | Evaluated secondary backend, not daily driver. See [SETUP.md](../SETUP.md#alternative-backend-openvino--ovms-evaluated-not-in-daily-use). |
 | `intel-compute-runtime` / `intel-opencl` / `intel-level-zero` (Fedora dnf packages) | 26.22.38646.6-4.fc44 | Separate GPU driver stack from the Mesa Vulkan driver above — needed for OpenVINO's GPU plugin to see the iGPU at all (`Core().available_devices` was `['CPU']` only beforehand). See [hardware.md](hardware.md). |
-| `docker.io/openvino/model_server` | `latest-gpu` tag (floating, image built 2026-06-17) | OVMS container image. Same floating-tag caveat as Open WebUI/Open Terminal above. |
+| `docker.io/openvino/model_server` | `latest-gpu` tag (floating, image built 2026-06-17) — used for Qwen3-8B; `weekly` tag (floating, tracks `main`) — used for Qwen3.5-9B, whose GPU kernels needed OpenVINO nightly wheels elsewhere in this stack (see [openvino#36151](https://github.com/openvinotoolkit/openvino/issues/36151)); `weekly` confirmed working (reaches `AVAILABLE`, no `CL_OUT_OF_RESOURCES`), `latest-gpu` not separately tested against this model | OVMS container image. Same floating-tag caveat as Open WebUI/Open Terminal above. No tag literally called "nightly" exists on Docker Hub for this image; `weekly` is the closest equivalent. |
 
 ## Why this exists
 

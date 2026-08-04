@@ -4,3 +4,4 @@ llama.cpp/
 *.backup-*
 linkedin-post.md
 openvino-test/
+ov-env/
