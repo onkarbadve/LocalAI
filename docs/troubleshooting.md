@@ -26,7 +26,7 @@ sudo dnf install -y glslc spirv-headers-devel spirv-tools-devel
 
 **Cause**: `--reasoning` defaults to `auto`, detected from the chat template. Qwen3-4B-Instruct-2507's template has a reasoning/`<think>` branch shared with the thinking variant of the model family, even though this specific Instruct checkpoint never emits `<think>` tags. Auto-detection flags it as a reasoning model and the parser waits indefinitely for a closing think tag that never comes.
 
-**Solution**: add `--reasoning off` to the launch flags. This is Qwen3-specific — verified it does *not* apply to Gemma before reusing it (see [SETUP.md](../SETUP.md#gemma-4-e4b-it--vision-chat-start-gemma-e4bsh--start-server-gemma4-e4bbat) for why the flag has different implications there).
+**Solution**: add `--reasoning off` to the launch flags. This is Qwen3-specific — verified it does *not* apply to Gemma before reusing it (see [SETUP.md](../SETUP.md#gemma-4-e4b-it--vision-chat-start-server-gemma4-e4bbat-windows-only) for why the flag has different implications there).
 
 **Verification**: replicate the client's exact request shape (`stream:true`, `reasoning_format:"deepseek"`) directly against the server — response completes with `finish_reason:"stop"` in a few seconds instead of running away.
 
@@ -135,11 +135,13 @@ sudo dnf install -y glslc spirv-headers-devel spirv-tools-devel
 
 **Problem**: two `llama-server` processes can't both bind the same port.
 
-**Cause**: `start-qwen3.sh` and `start-gemma-e4b.sh` both bind `8080` by design — running two models on the same port simultaneously isn't supported, and the abliterated model (`start-qwen3-uncensored.sh`, port `8081`) is run mutually exclusively with production for a memory-budget reason, not a port one (see [SETUP.md](../SETUP.md#qwen3-4b-instruct-2507-heretic-av2--uncensored-bluntdirect-assistant-start-qwen3-uncensoredsh-fedora-only)).
+**Cause (Windows)**: `Start-Server.bat` and `Start-Server-Gemma4-E4B.bat` both bind `8080` by design — running two models on the same port simultaneously isn't supported.
+
+**Cause (Fedora, historical)**: `start-qwen3.sh` and `start-gemma-e4b.sh` used to both bind `8080` the same way, before both were deleted 2026-08-05 (only uncensored models are kept on this box now). The two surviving Fedora scripts don't actually port-conflict with each other — `start-qwen3-uncensored.sh` (`8081`) and `start-gemma-uncensored.sh` (`8082`) are run mutually exclusively for a memory-budget reason, not a port one (see [SETUP.md](../SETUP.md#qwen3-4b-instruct-2507-heretic-av2--uncensored-bluntdirect-assistant-start-qwen3-uncensoredsh-fedora-only)) — starting both at once would OOM/thrash before it would ever hit a bind error.
 
 **Solution**: stop the other server before starting a new one on the same port — `pkill -f llama-server` on Fedora, or close the other server window on Windows.
 
-**Verification**: `ss -tlnp | grep 8080` shows only the intended process holding the port.
+**Verification**: `ss -tlnp | grep <port>` shows only the intended process holding the port.
 
 ---
 

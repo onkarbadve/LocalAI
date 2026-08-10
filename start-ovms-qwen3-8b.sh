@@ -2,9 +2,11 @@
 #
 # Purpose: launch Qwen3-8B (OpenVINO IR, INT4) via OpenVINO Model Server (OVMS)
 #   on the Intel iGPU, OpenAI-compatible API on port 8084. This is the
-#   OpenVINO-backend counterpart to start-qwen3.sh (llama.cpp/Vulkan) - see
-#   JOURNAL.md 2026-08-02 for why both backends exist (OpenVINO evaluation)
-#   and the bugs hit standing this up.
+#   OpenVINO-backend counterpart to the llama.cpp/Vulkan chat servers
+#   (start-qwen3-uncensored.sh / start-gemma-uncensored.sh as of 2026-08-05;
+#   was start-qwen3.sh before that script and its censored model were
+#   deleted) - see JOURNAL.md 2026-08-02 for why both backends exist
+#   (OpenVINO evaluation) and the bugs hit standing this up.
 # Requires: podman; the `docker.io/openvino/model_server:latest-gpu` image
 #   (already pulled - see `podman images`); the converted IR at
 #   ~/LocalAI/openvino-test/qwen3-8b-int4-ov (NOT a GGUF - a separate

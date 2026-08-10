@@ -63,15 +63,13 @@ flowchart TD
     TS --> Remote["Browser / Mobile"]
 ```
 
-This is the simplified shape of it. For the full diagram — all three `llama-server` ports, container networking, and why the chat models run mutually exclusively — see [`docs/architecture.md`](docs/architecture.md). Hardware specs: [`docs/hardware.md`](docs/hardware.md).
+This is the simplified shape of it. For the full diagram — both `llama-server` ports, container networking, and why the chat models run mutually exclusively — see [`docs/architecture.md`](docs/architecture.md). Hardware specs: [`docs/hardware.md`](docs/hardware.md).
 
 ## Quick Start
 
 ```bash
-# Fedora — start the production chat model
-./start-qwen3.sh
-
-# ...or an uncensored variant (mutually exclusive with the above and each other)
+# Fedora — start a chat model (mutually exclusive with each other; only
+# uncensored models are kept on this box, see SETUP.md)
 ./start-qwen3-uncensored.sh
 ./start-gemma-uncensored.sh
 
@@ -106,10 +104,9 @@ Models aren't checked into this repo (multi-GB GGUF files). Building `llama.cpp`
 LocalAI/
 ├── llama.cpp/                    # upstream checkout, built from source (Vulkan) — gitignored, see docs/hardware.md
 ├── models/                       # GGUF weights — gitignored, multi-GB binaries, see docs/hardware.md
-├── start-qwen3.sh                # production chat/coding/agent model
-├── start-qwen3-uncensored.sh     # abliterated blunt/direct-assistant variant
-├── start-gemma-e4b.sh            # vision chat (deprioritized)
+├── start-qwen3-uncensored.sh     # production chat/coding/agent model, abliterated blunt/direct-assistant
 ├── start-gemma-uncensored.sh     # abliterated Gemma variant, own port, mutually exclusive with the above
+├── bench-llama-server.py         # benchmarks a running llama-server's PP/TG throughput
 ├── start-open-webui.sh           # Open WebUI, rootless Podman
 ├── start-open-terminal.sh        # shell/file API for the models, rootless Podman
 ├── start-searxng.sh              # self-hosted metasearch, backs Open WebUI's Web Search toggle, rootless Podman
@@ -141,10 +138,10 @@ Not yet captured — placeholders below and capture checklist in [`docs/images/`
 
 | Model | Quant | Context | Speed | RAM | GPU Memory | Notes |
 |-------|-------|---------|-------|-----|------------|-------|
-| Qwen3-4B-Instruct-2507 | Q4_K_XL | 24576 | ~9–9.8 tok/s | ~530MB RSS | ~6GB | Production, port 8080 |
-| Qwen3-4B-Instruct-2507-heretic-av2 | Q4_K_M | 24576 | ~9–11.6 tok/s | TODO | ~6GB | Blunt/direct, port 8081 |
-| Gemma 4 E4B-it + mmproj | Q4_K_XL | 8192 | ~9–9.8 tok/s | TODO | TODO | Deprioritized fallback |
-| Gemma-4-E4B-Uncensored-HauhauCS-Aggressive | Q4_K_P | 16384 | ~7.4 tok/s gen, ~41 tok/s prompt | TODO | ~5.3GB | Blunt/direct, port 8082 |
+| Qwen3-4B-Instruct-2507-heretic-av2 | Q4_K_M | 24576 | ~9–11.6 tok/s | TODO | ~6GB | Production, port 8081 |
+| Gemma-4-E4B-Uncensored-HauhauCS-Aggressive | Q4_K_P | 16384 | ~7.4 tok/s gen, ~41 tok/s prompt | TODO | ~5.3GB | Production, port 8082 |
+
+Numbers above for the censored `Qwen3-4B-Instruct-2507` (port 8080) and `Gemma 4 E4B-it + mmproj` rows kept in [`docs/benchmarks.md`](docs/benchmarks.md) as historical data — both models were deleted 2026-08-05 (only uncensored models are kept on this box now), so those rows were dropped from this summary table rather than restated as still-running.
 
 Full numbers, multi-turn cache-reuse data, and agent-mode round-trip timings: [`docs/benchmarks.md`](docs/benchmarks.md). An OpenVINO/OVMS backend was also evaluated on the same iGPU (not the daily driver) — see the [OpenVINO section there](docs/benchmarks.md#openvino--ovms-evaluated-backend-not-in-daily-use).
 

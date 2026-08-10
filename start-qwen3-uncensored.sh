@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 #
-# Purpose: launch the secondary, uncensored/blunt-mode llama-server instance
-#   (Qwen3-4B-Instruct-2507-heretic-av2) on port 8081. Not the production
-#   agent-mode server - that's start-qwen3.sh.
+# STATUS (2026-08-05): this is now the only Qwen production server on this
+# box. start-qwen3.sh (the censored, non-abliterated production instance
+# this comment block originally described as running alongside) and the
+# model file it pointed at were both deleted - only uncensored models are
+# kept here now. Every "not the production server"/"alongside :8080"
+# reference below predates that and describes design intent from when both
+# ran side by side, not current reality - kept as-is for the historical
+# reasoning (why a separate port, why abliterated-vs-base was chosen), not
+# because port 8080 is still in use.
+#
+# Purpose: launch the llama-server instance (Qwen3-4B-Instruct-2507-heretic-av2,
+#   uncensored/blunt-mode) on port 8081.
 # Requires: llama.cpp built from source with the Vulkan backend at
 #   $HOME/LocalAI/llama.cpp/build/bin/llama-server; the GGUF at
 #   $HOME/LocalAI/models/Qwen3-4B-Instruct-2507-heretic-av2.Q4_K_M.gguf
@@ -11,18 +20,18 @@
 #   sampling/runtime flags.
 # Expected output: runs in the foreground (via `exec`); binds
 #   127.0.0.1:8081 once ready; GET /health returns `{"status":"ok"}`.
-# Typical usage: ./start-qwen3-uncensored.sh   (register alongside :8080 in
-#   Open WebUI - both connections stay configured, only one process need run)
+# Typical usage: ./start-qwen3-uncensored.sh   (registered in Open WebUI
+#   alongside start-gemma-uncensored.sh's :8082 - both connections stay
+#   configured, only one process need run, see SETUP.md)
 # Failure cases: fails fast on a missing binary/model path; run mutually
-#   exclusive with start-qwen3.sh at their current context sizes - combined
-#   Vulkan memory does not fit both (see SETUP.md); see docs/troubleshooting.md
-#   for repetition-loop and GPU fence-timeout failure modes.
+#   exclusive with start-gemma-uncensored.sh at their current context sizes -
+#   combined Vulkan memory does not fit both (see SETUP.md); see
+#   docs/troubleshooting.md for repetition-loop and GPU fence-timeout failure
+#   modes.
 #
 # Qwen3-4B-Instruct-2507-heretic-av2 (arnomatic, abliterated via Heretic v1.1.0,
-# GGUF by mradermacher) - separate/secondary "blunt, unfiltered" chat model.
-# Not the production agent-mode server (that's start-qwen3.sh) - deliberately
-# kept on its own port so both can run at once if wanted, or so this one can
-# be started standalone without touching production.
+# GGUF by mradermacher) - "blunt, unfiltered" chat model, deliberately kept
+# on its own port from Gemma above so either can be started standalone.
 #
 # Chosen over mlabonne/NeuralDaredevil-8B-abliterated (2024, older, different
 # base) specifically because this is an abliteration of the *exact* model
@@ -71,13 +80,13 @@
 # "runaway" backstop; the two penalties above are the preferred/earlier line
 # of defense, this is the guaranteed one.
 #
-# Port 8081 (production Qwen3/Gemma stay on 8080) - chosen so this CAN run
-# alongside production without a port collision, but as of 2026-07-30 the two
+# Port 8081 (Gemma-uncensored stays on 8082) - chosen so this CAN run
+# alongside Gemma without a port collision, but as of 2026-07-30 the two
 # are being run mutually exclusively on purpose, not concurrently: both at
-# -c 24576 is ~6GB Vulkan-visible each (per start-qwen3.sh's own comment),
-# ~12GB combined, over the documented ~7.4-9.8GB budget - and piling on memory
-# pressure is exactly the wrong move while the intermittent i915 fence-timeout/
-# GPU-hang issue (JOURNAL.md, still not fully root-caused) is unresolved.
+# -c 24576 is ~6GB Vulkan-visible each, ~12GB combined, over the documented
+# ~7.4-9.8GB budget - and piling on memory pressure is exactly the wrong move
+# while the intermittent i915 fence-timeout/GPU-hang issue (JOURNAL.md, still
+# not fully root-caused) is unresolved.
 # Revisit concurrent use only after shrinking this script's -c substantially
 # (KV cache scales with context; dropping to -c 4096 would cut this model's
 # footprint roughly in half) AND after the GPU-hang situation is calmer.

@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
+# STATUS (2026-08-05): this is now the only Gemma production server on this
+# box. start-gemma-e4b.sh (the censored, non-abliterated production instance
+# this comment block originally described) and the model files it pointed at
+# (including mmproj-F16.gguf - vision is NOT loaded here, no --mmproj below)
+# were both deleted - only uncensored models are kept here now. Every "not
+# production"/"production stays on 8080" reference below predates that and
+# describes design intent from when both ran side by side, not current
+# reality - kept as-is for the historical reasoning, not because port 8080
+# is still in use.
+#
 # Gemma-4-E4B-Uncensored-HauhauCS-Aggressive (HauhauCS, biprojected abliteration)
-# - separate/secondary uncensored chat model, same role as
-# start-qwen3-uncensored.sh but for the Gemma family. Not production
-# (start-gemma-e4b.sh, start-qwen3.sh) - kept on its own port so it doesn't
-# collide, though see the memory-budget note below before running it
-# alongside anything else.
+# - uncensored chat model, same role as start-qwen3-uncensored.sh but for the
+# Gemma family, kept on its own port so it doesn't collide, though see the
+# memory-budget note below before running it alongside anything else.
 #
 # Quant: Q4_K_P (HauhauCS's own model-specific custom quant, ~5.34GB
 # claimed 1-2 quant-levels above plain Q4_K_M at similar size), chosen
@@ -37,16 +45,15 @@
 # maxed, 8MB/s thrashing) during verification earlier today. Always pass
 # this explicitly for single-user use, same as every other script here.
 #
-# -c 16384, -ctk/-ctv q8_0, --swa-full: same reasoning as start-gemma-e4b.sh
-# (quantized KV cache + full SWA cache reuse so multi-turn requests don't
-# reprocess the whole conversation every turn, ggml-org/llama.cpp#22288).
-# Production Gemma is currently running at -c 8192 pending confirmation
-# the GGML_VK_MAX_NODES_PER_SUBMIT=1 mitigation is fully solid (see its
-# own script comment) - this script uses 16384 on the strength of today's
-# stress test (~90s sustained generation, no new entries in
+# -c 16384, -ctk/-ctv q8_0, --swa-full: quantized KV cache + full SWA cache
+# reuse so multi-turn requests don't reprocess the whole conversation every
+# turn (ggml-org/llama.cpp#22288). The now-deleted censored Gemma script ran
+# at -c 8192 pending confirmation the GGML_VK_MAX_NODES_PER_SUBMIT=1
+# mitigation below was fully solid; this script uses 16384 on the strength
+# of a 2026-08-01 stress test (~90s sustained generation, no new entries in
 # ~/.local/share/gpu-fence-alerts.log afterward) but has less real-world
-# runtime behind it than that decision. Drop to 8192 to match production's
-# current caution if fence timeouts show up here.
+# runtime behind it than that more cautious value did. Drop to 8192 if fence
+# timeouts show up here.
 #
 # GGML_VK_MAX_NODES_PER_SUBMIT=1: same iGPU fence-timeout mitigation as
 # every other script here (ggml-org/llama.cpp#21724) - backend-level, not
@@ -55,12 +62,11 @@
 # --temp/--top-p/--top-k/--min-p: Google's published Gemma defaults, same
 # as start-gemma-e4b.sh.
 #
-# Port 8082 (production stays on 8080, uncensored Qwen3 on 8081) - chosen
-# to avoid collision, NOT validated for concurrent use with either. Same
-# combined-memory-budget caveat as start-qwen3-uncensored.sh applies: this
-# model alone is already larger than production Gemma's Q4_K_XL (5.1GB vs
-# 4.8GB) - do the memory math before running two servers at once rather
-# than assuming it fits.
+# Port 8082 (uncensored Qwen3 on 8081) - chosen to avoid collision, NOT
+# validated for concurrent use with it. Same combined-memory-budget caveat
+# as start-qwen3-uncensored.sh applies: this model alone was already larger
+# than the old censored Gemma's Q4_K_XL (5.1GB vs 4.8GB) - do the memory math
+# before running two servers at once rather than assuming it fits.
 
 # -t 8: taskset -c 0-7 pinning was considered and benchmarked as a wash on
 # this GPU-offloaded path (real cost in the CPU-fallback path instead) - see

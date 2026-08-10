@@ -1,6 +1,7 @@
 models/
 llama.cpp/
 .claude/
+.agents/
 *.backup-*
 linkedin-post.md
 openvino-test/

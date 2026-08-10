@@ -4,7 +4,7 @@
 #   rootless Podman container, pointed at the local llama-server instance(s).
 # Requires: Podman (rootless); network access to pull
 #   ghcr.io/open-webui/open-webui:main on first run; a llama-server instance
-#   already running on 127.0.0.1:8080 and/or :8081 for chat to actually work
+#   already running on 127.0.0.1:8081 and/or :8082 for chat to actually work
 #   (this script will still start Open WebUI itself without one running).
 # Arguments: none.
 # Expected output: prints the container name/URL and exits (0) if already
@@ -20,22 +20,29 @@
 # Open WebUI - chat frontend for the local llama.cpp server.
 # Runs as a rootless Podman container.
 #
-# --network host: llama-server binds to 127.0.0.1:8080 only (not 0.0.0.0), so
+# --network host: llama-server binds to 127.0.0.1 only (not 0.0.0.0), so
 # bridge networking + host.containers.internal can't reach it. Host networking
 # sidesteps that - the container sees localhost exactly like the host does.
 # PORT=3000: Open WebUI defaults to 8080 internally, which would collide with
-# llama-server on the host network. Moved to 3000 instead.
+# a llama-server bound to that port on the host network. Moved to 3000
+# instead (kept off 8080 even though nothing currently binds it - see below).
 # OPENAI_API_KEY: llama-server doesn't check it, but Open WebUI's connection
 # form requires a non-empty value to treat the endpoint as configured.
 # OPENAI_API_BASE_URLS (plural, semicolon-separated, added 2026-07-30, extended
-# 2026-08-01 with port 8082): also registers the uncensored model servers
-# (start-qwen3-uncensored.sh port 8081, start-gemma-uncensored.sh port 8082)
-# as additional connections, so they show up in the model picker without
-# reconfiguring Open WebUI each time you switch which llama-server is running.
-# These llama-server processes are still run mutually exclusively (see each
-# script's own memory-budget comment) - whichever ones aren't currently
-# running just show as unreachable in the model picker rather than error at
-# Open WebUI's own startup.
+# 2026-08-01 with port 8082; port 8080 removed 2026-08-05 when start-qwen3.sh/
+# start-gemma-e4b.sh and the censored models they pointed at were deleted -
+# only uncensored models are kept on this box now): registers the two
+# uncensored model servers (start-qwen3-uncensored.sh port 8081,
+# start-gemma-uncensored.sh port 8082) as connections, so they show up in the
+# model picker without reconfiguring Open WebUI each time you switch which
+# llama-server is running. These llama-server processes are still run
+# mutually exclusively (see each script's own memory-budget comment) -
+# whichever one isn't currently running just shows as unreachable in the
+# model picker rather than error at Open WebUI's own startup.
+# NOTE: this env var only applies at container *creation*. The existing
+# open-webui container (already created) still has the old 8080-inclusive
+# value baked in until it's removed (`podman rm open-webui`, data survives in
+# the open-webui-data volume) and recreated by rerunning this script.
 # ENABLE_OLLAMA_API=false: no Ollama running on this box; skips its
 # unreachable-endpoint warnings in the logs.
 # ENABLE_RAG_WEB_SEARCH / RAG_WEB_SEARCH_ENGINE / SEARXNG_QUERY_URL (added
@@ -74,8 +81,8 @@ exec podman run -d \
   --name "$CONTAINER" \
   --network host \
   -e PORT=3000 \
-  -e OPENAI_API_BASE_URLS="http://localhost:8080/v1;http://localhost:8081/v1;http://localhost:8082/v1" \
-  -e OPENAI_API_KEYS="sk-no-key-required;sk-no-key-required;sk-no-key-required" \
+  -e OPENAI_API_BASE_URLS="http://localhost:8081/v1;http://localhost:8082/v1" \
+  -e OPENAI_API_KEYS="sk-no-key-required;sk-no-key-required" \
   -e ENABLE_OLLAMA_API=false \
   -e ENABLE_KB_EXEC=true \
   -e ENABLE_RAG_WEB_SEARCH=true \

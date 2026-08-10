@@ -20,10 +20,10 @@ This is the full flag-by-flag reference. For narrower, topic-specific docs, see 
 
 **Fedora (`~/LocalAI`)**
 - `llama.cpp/` — built from source, Vulkan backend
-- `models/` — `Qwen3-4B-Instruct-2507-UD-Q4_K_XL.gguf`, `gemma-4-E4B-it-UD-Q4_K_XL.gguf`, `mmproj-F16.gguf`, `Qwen3-4B-Instruct-2507-heretic-av2.Q4_K_M.gguf`
-- `start-qwen3.sh`, `start-gemma-e4b.sh` — llama.cpp launch scripts
-- `start-qwen3-uncensored.sh` — abliterated Qwen3-4B-Instruct-2507 (arnomatic/heretic-av2), separate blunt/direct-assistant role, port 8081, see below
-- `start-gemma-uncensored.sh` — abliterated Gemma variant (Gemma-4-E4B-Uncensored-HauhauCS-Aggressive), own port 8082, mutually exclusive with the above
+- `models/` — `Qwen3-4B-Instruct-2507-heretic-av2.Q4_K_M.gguf`, `Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf` — **only uncensored models are kept on this box** (the censored `Qwen3-4B-Instruct-2507-UD-Q4_K_XL.gguf` / `gemma-4-E4B-it-UD-Q4_K_XL.gguf` / `mmproj-F16.gguf` this section used to list were deleted 2026-08-05, along with the two launch scripts that pointed at them)
+- `start-qwen3-uncensored.sh` — abliterated Qwen3-4B-Instruct-2507 (arnomatic/heretic-av2), port 8081, see below
+- `start-gemma-uncensored.sh` — abliterated Gemma variant (Gemma-4-E4B-Uncensored-HauhauCS-Aggressive), port 8082, mutually exclusive with the above
+- `bench-llama-server.py` — benchmarks a running `llama-server`'s prompt-processing/generation throughput via its native `/completion` endpoint; see [docs/benchmarks.md](docs/benchmarks.md#formal-benchmark-2026-08-05--both-production-servers-live) for the methodology and 2026-08-05 results
 - `start-open-webui.sh` — launches Open WebUI (Podman container) as a chat frontend, see below
 - `start-open-terminal.sh` — launches Open Terminal (Podman container), a shell/file API wired into Open WebUI as an Integration, see below
 - `start-searxng.sh` — self-hosted metasearch (Podman container), backs Open WebUI's Web Search toggle, port 8888
@@ -50,10 +50,11 @@ This is the full flag-by-flag reference. For narrower, topic-specific docs, see 
 
 | Model | Quant | Use | Speed (iGPU) | Status |
 |---|---|---|---|---|
-| Qwen3-4B-Instruct-2507 | Unsloth Dynamic Q4_K_XL | Chat / coding / agent-mode | ~9-9.8 tok/s | Production (port 8080) |
-| Qwen3-4B-Instruct-2507-heretic-av2 (arnomatic, abliterated) | mradermacher Q4_K_M | Blunt/direct assistant, no refusals on sensitive-but-legal topics | ~9-11.6 tok/s | Secondary, port 8081 - mutually exclusive with the two above (combined Vulkan memory doesn't fit; see JOURNAL 2026-07-30) |
-| Gemma 4 E4B-it + mmproj-F16 | Unsloth Dynamic Q4_K_XL | Vision chat | ~9-9.8 tok/s | **Deprioritized** (2026-07-30) - more crash/hang-prone than Qwen3 beyond the shared iGPU fence-timeout bug, and vision is no longer a hard requirement; kept as a fallback, not actively used |
+| Qwen3-4B-Instruct-2507-heretic-av2 (arnomatic, abliterated) | mradermacher Q4_K_M | Chat / coding / agent-mode, blunt/direct, no refusals on sensitive-but-legal topics | ~9-11.6 tok/s | Production (Fedora), port 8081 - mutually exclusive with Gemma below (combined Vulkan memory doesn't fit; see JOURNAL 2026-07-30) |
+| Gemma-4-E4B-Uncensored-HauhauCS-Aggressive | Q4_K_P | Chat, uncensored (text-only — no `--mmproj` loaded, unlike the deleted vision script) | ~9-9.8 tok/s | Production (Fedora), port 8082 - mutually exclusive with Qwen above |
 | Qwen2.5-Coder-1.5B (Windows only) | Q4_K_M | Autocomplete | — | Production (Windows only) |
+
+The censored `Qwen3-4B-Instruct-2507` (port 8080) and `Gemma 4 E4B-it + mmproj-F16` (vision, deprioritized 2026-07-30) rows that used to be here were removed 2026-08-05: both model files were deleted from `models/` and their launch scripts (`start-qwen3.sh`, `start-gemma-e4b.sh`) deleted along with them — this Fedora box now runs only the two uncensored variants above. Windows (`C:\LocalAI`) still has the censored models and `Start-Server.bat`/`Start-Server-Gemma4-E4B.bat`; that side wasn't touched.
 
 ## Steps followed (chronological)
 
@@ -70,9 +71,11 @@ This is the full flag-by-flag reference. For narrower, topic-specific docs, see 
 
 ## Per-script configuration
 
-### Qwen3-4B-Instruct-2507 — solo chat (`start-qwen3.sh` / `Start-Server.bat`)
+### Qwen3-4B-Instruct-2507 — solo chat (`Start-Server.bat`, Windows only)
 
-| Flag | Fedora | Windows |
+**Fedora's `start-qwen3.sh` and the censored model it pointed at were deleted 2026-08-05** — only uncensored models are kept on this box now (see [Models in production](#models-in-production) and JOURNAL.md that date). The Fedora column below is kept for historical reference (what it used to run), not as a currently-runnable config.
+
+| Flag | Fedora (historical, deleted 2026-08-05) | Windows |
 |---|---|---|
 | Port | 8080 | 8080 |
 | `-t` (threads) | 8 | 8 |
@@ -82,9 +85,11 @@ This is the full flag-by-flag reference. For narrower, topic-specific docs, see 
 | `--mlock` | not used (see Issues #2) | used — kept, small footprint |
 | Sampling | `--temp 0.7 --top-p 0.8 --top-k 20 --min-p 0` (Qwen non-thinking defaults) | same |
 
-### Gemma 4 E4B-it — vision chat (`start-gemma-e4b.sh` / `Start-Server-Gemma4-E4B.bat`)
+### Gemma 4 E4B-it — vision chat (`Start-Server-Gemma4-E4B.bat`, Windows only)
 
-| Flag | Fedora | Windows |
+**Fedora's `start-gemma-e4b.sh` and the censored model + `mmproj-F16.gguf` it pointed at were deleted 2026-08-05** — same reason as above; `start-gemma-uncensored.sh` (below) is text-only, not a vision replacement. The Fedora column is kept for historical reference only.
+
+| Flag | Fedora (historical, deleted 2026-08-05) | Windows |
 |---|---|---|
 | Port | 8080 | 8080 |
 | `-t` | 8 | 8 |
@@ -96,11 +101,11 @@ This is the full flag-by-flag reference. For narrower, topic-specific docs, see 
 | `--mmproj` | mmproj-F16.gguf (vision) | same |
 | `--mlock` | not used | **removed** — crashed a browser tab once under memory pressure |
 | Sampling | Google's published Gemma defaults: `--temp 1.0 --top-p 0.95 --top-k 64 --min-p 0.0` | same |
-| `GGML_VK_MAX_NODES_PER_SUBMIT` (env, Fedora only) | `1` (default 100) — trial fix for `i915` fence-timeout/GPU-hang incidents, see JOURNAL.md 2026-07-28 | not set |
+| `GGML_VK_MAX_NODES_PER_SUBMIT` (env, Fedora only) | `1` (default 100) — trial fix for `i915` fence-timeout/GPU-hang incidents, see JOURNAL.md 2026-07-28; same value carried into `start-gemma-uncensored.sh` | not set |
 
-Both single-server scripts (both OSes) bind port 8080 — only one server runs at a time.
+Windows's single-server scripts still bind port 8080. On Fedora, nothing binds 8080 anymore as of 2026-08-05 — the two surviving scripts use 8081 (`start-qwen3-uncensored.sh`) and 8082 (`start-gemma-uncensored.sh`), run mutually exclusively.
 
-Fedora's `start-gemma-e4b.sh` also carries two local, unsubmitted patches to the `llama.cpp` source (`tools/server/server-context.cpp`, `tools/server/server-task.cpp`) that catch a Vulkan `DeviceLostError` in the prompt-cache save/load path instead of crashing the server — see JOURNAL.md 2026-07-28 for the two coredump traces that led to them. These do not survive a `git pull`/rebuild of `llama.cpp/` and must be reapplied by hand.
+The Fedora `llama.cpp/` checkout also carries three local, unsubmitted patches on top of upstream — `tools/server/server-context.cpp` and `tools/server/server-task.cpp` catch a Vulkan `DeviceLostError` in the prompt-cache save/load path instead of crashing the server, and `ggml/src/ggml-vulkan/ggml-vulkan.cpp` catches the same error in `ggml_vk_cleanup()`'s teardown path instead of crashing on restart — see JOURNAL.md 2026-07-28 for the coredump traces that led to them. These apply to every model script on this build (not just Gemma's), don't survive a `git pull`, and must be reapplied by hand after any update — confirmed still necessary and carried forward on the 2026-08-05 update to `61881b1` (see JOURNAL.md that date).
 
 ### Qwen3-4B-Instruct-2507-heretic-av2 — uncensored blunt/direct assistant (`start-qwen3-uncensored.sh`, Fedora only)
 

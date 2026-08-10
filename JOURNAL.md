@@ -17,6 +17,165 @@ Older entries below predate this template and stay in their original free-form n
 
 ---
 
+## 2026-08-11 — Moved the arr stack (Sonarr/Radarr/Prowlarr/qBittorrent/FlareSolverr) off this box, to the RPi5
+
+**Goal**: this box isn't kept up 24/7, but the arr stack needs to be — move it to the always-on RPi5 (unrelated to LLM serving, but touches this box's `~/.config/containers/systemd/` and `~/media-stack/`, hence recorded here per the 2026-08-09 precedent of tracking host-level changes).
+
+**Changes**: stopped and removed the 5 rootless-Podman containers (`sonarr`/`radarr`/`prowlarr`/`qbittorrent`/`flaresolverr`), deleted their Quadlet unit files (`~/.config/containers/systemd/{sonarr,radarr,prowlarr,qbittorrent,flaresolverr}.container`) and `~/media-stack/` (configs rsync'd to the Pi first). If `~/.config/containers/systemd/` or `~/media-stack/` show up empty in a future session on this box, this is why — nothing to restore here, the live copy is on the Pi.
+
+**Results**: verified via each app's own API (`/api/v3/health` etc., not just an HTTP 200 on `/`) that the Pi copy is healthy, and that no config referenced this box's Tailscale IP/hostname (all cross-app URLs use `localhost`, host networking). Full detail — including a `vfs`-vs-`overlay` storage-driver pitfall hit on the Pi — is in this session's memory, not duplicated here since it's Pi-side, not this box's.
+
+**Next steps**: none on this box. Pi-side follow-ups (USB storage, boot-persistence reboot test) are tracked in that memory, not here.
+
+**Update, same day**: the boot-persistence reboot test is now confirmed — the arr-stack's `restart=always` + `podman-restart.service` setup survived not just a plain reboot but the Pi's full bookworm→trixie OS upgrade (including a `podman` 4.3.1→5.4.2 jump) done later the same day. That upgrade, a disk cleanup, and a security fix (disabling an unwanted `wayvnc` VNC server the OS upgrade auto-enabled) all happened entirely Pi-side — zero footprint on this box, so still not duplicated here; full detail is in the `rpi5_pihole_tailscale_setup` and `arr_stack_pi` memory files.
+
+---
+
+## 2026-08-09 — Disk cleanup: root filesystem was at 91% (5.2G free)
+
+**Goal**: root (`/`, 54G total) was down to 5.2G free — free up space before it becomes an outage.
+
+**Changes**: deleted `openvino-test/ov_cache/` (4.7G, OpenVINO compiled-kernel cache — regenerates automatically on next OVMS run) and `openvino-test/venv/` (308M, rebuildable). Deleted `openvino-test/qwen3-8b-int4-ov/` (4.6G) — the OpenVINO IR conversion of Qwen3-8B evaluated in the 2026-08-02/03 OVMS spike, now superseded by the Qwen3.5-9B OVMS setup (`models/Qwen3.5-9B-int4-ov`, see 2026-08-09 commit "Serve Qwen3.5-9B via OVMS"). Also cleared `~/.cache/google-chrome`, `~/.cache/mozilla`, `~/.cache/pip` (browser/pip caches, all regenerate).
+
+**Results**: root free space went from 5.2G (91% used) to 16G (71% used), verified with `df -h /`.
+
+**Problems**: `start-ovms-qwen3-8b.sh` hardcodes `MODEL_DIR="$HOME/LocalAI/openvino-test/qwen3-8b-int4-ov"` (line 58) — that path no longer exists, so the script is now dead/broken. Left as-is pending a decision on whether to delete the script or repoint it.
+
+**Next steps**: decide whether to delete `start-ovms-qwen3-8b.sh` (dead now) or repoint it; still undecided: `~/recovered-core2duo-2015/` (2.1G, old recovered data) and duplicate podman images `openvino/model_server:weekly` + `:latest-gpu` (~1.1G each) were flagged but not touched. `sudo journalctl --vacuum-time=7d` (~400M) also still pending — needs interactive sudo.
+
+---
+
+## 2026-08-07 — Key-only SSH access to Fedora and RPi5 from Android/Termius
+
+**Goal**: reach both the Fedora box and the RPi5 (Pi-hole) over SSH from an Android phone via Termius, password auth disabled everywhere.
+
+**Changes**: enabled and started `sshd` on Fedora (was installed but inactive); added `/etc/ssh/sshd_config.d/99-key-only.conf` with `PasswordAuthentication no`, `KbdInteractiveAuthentication no`, `PubkeyAuthentication yes`, `PermitRootLogin no`. Generated an ED25519 key in Termius on the phone, added its public key to `~/.ssh/authorized_keys` on both Fedora and RPi5 (reused the same phone key for both hosts rather than minting one per host). No firewalld changes needed — `tailscale0` was already in the `trusted` zone, so SSH is reachable over the tailnet without opening any port on the LAN-facing zone.
+
+**Results**: Termius connects to Fedora (`100.93.33.122`) and RPi5 (`100.102.227.7`) over Tailscale using key auth only, per the user's own confirmation ("i am in" / "done"). RPi5's sshd was already key-only from the earlier Pi-hole/Tailscale setup and its effective config *was* checked directly (`sudo sshd -T` succeeded there, showing `passwordauthentication no`). Fedora's was not: every `sudo sshd -T` there returned `NEED_PW` (sudo needs an interactive password unavailable in this session), so the drop-in's effect on Fedora was inferred from a successful passwordless Termius login rather than confirmed directly against the merged config.
+
+**Problems**: first connection attempt from Termius hung on "trying to connect" — cause was the phone's Tailscale client itself showing `offline` in `tailscale status` (backgrounded/killed by Android, not an SSH or firewall issue). Reconnecting Tailscale on the phone fixed it.
+
+**Lessons**: when an SSH connection over Tailscale hangs rather than failing fast, check `tailscale status` for the *client* device before touching sshd/firewall config — a phone's Tailscale VPN getting backgrounded is easy to overlook since the SSH client (Termius) gives no indication the transport layer is the problem.
+
+**Next steps**: run `sudo sshd -T | grep -E 'passwordauthentication|permitrootlogin'` on Fedora directly (interactive sudo) to confirm the drop-in's effective config, rather than relying on inference from a working login.
+
+---
+
+## 2026-08-06 — Arr stack (Sonarr/Radarr/Prowlarr/qBittorrent/FlareSolverr) stood up as rootless Podman containers
+
+*Backfilled from Claude memory — this work happened in a separate session that predates this journal entry.*
+
+**Goal**: get a media-management stack running on the same Fedora box as the LLM servers, alongside the existing Pi-hole/Tailscale and LLM-serving setups.
+
+**Changes**: five rootless Podman containers, all `--network host` (same host-networking pattern already used for Open WebUI, so ports below are real host ports, not published mappings): `sonarr` (`linuxserver/sonarr`, 8989), `radarr` (`linuxserver/radarr`, 7878), `prowlarr` (`linuxserver/prowlarr`, 9696), `qbittorrent` (`linuxserver/qbittorrent`, 8080 WebUI + 6881 tcp/udp), `flaresolverr` (`flaresolverr/flaresolverr`, 8191, 8192 also exposed). No `podman pod` grouping — each is standalone, reaching the others over `localhost:<port>` via host networking.
+
+**Results**: all five containers created and running as of setup.
+
+**Problems**: none logged.
+
+**Lessons**: none logged.
+
+**Next steps**: not yet checked whether any of these are additionally reachable over Tailscale — host networking plus `tailscale0` already sitting in firewalld's `trusted` zone (see the 2026-07-29 entry below) means they likely are, same as other host-networked services on this box, but this wasn't verified. As of 2026-08-06 all five are in `Exited` state — started manually as needed rather than kept always-up.
+
+---
+
+## 2026-08-06 — Pi-hole phone DNS override re-enabled and confirmed routing
+
+*Backfilled from Claude memory — this work happened in a separate session that predates this journal entry.*
+
+**Goal**: resolve the fork left open in the 2026-07-29 Tailscale entry below — re-enable the Android phone's Tailscale "Override local DNS" (turned off earlier to avoid fighting a NextDNS Private DNS profile) now that Pi-hole is set as the tailnet's Global Nameserver, and confirm it actually routes phone DNS traffic through Pi-hole rather than just trusting the toggle.
+
+**Changes**: re-enabled Tailscale DNS override on the phone (`a34`).
+
+**Results**: confirmed via Pi-hole's own query log — client `100.69.158.115` (the phone's tailnet IP) actively querying. This holds on any network (home WiFi or mobile data), since Tailscale DNS override intercepts at the OS/VPN level regardless of the physical network — "same WiFi as the Pi" turned out to be irrelevant.
+
+**Problems**: none — this was the direct resolution of option (b) from the 2026-07-29 entry's open fork (add Pi-hole as Global Nameserver + re-enable override), rather than settling for option (a) (raw-IP-only, no DNS override).
+
+**Lessons**: none beyond what's already in the 2026-07-29 entry.
+
+**Next steps**: none for this specific fix.
+
+---
+
+## 2026-08-05 — RPi5 stood up as dedicated Pi-hole + Tailscale DNS box for the whole tailnet
+
+*Backfilled from Claude memory — this work happened in a separate session that predates this journal entry.*
+
+**Goal**: stand up ad-blocking DNS for every device on the tailnet, on a separate physical box rather than the LLM-serving Fedora machine.
+
+**Changes**: Raspberry Pi 5 (hostname `raspberrypi`, Raspberry Pi OS **with Desktop** 64-bit, Debian 12 "bookworm", kernel `6.12.47+rpt-rpi-2712`, no Docker/Podman) running Pi-hole v6 bare-metal, upstream resolver over DNS-over-TLS. Tailscale installed on the Pi (tailnet hostname `raspberrypi-pihole`, tailnet IP `100.102.227.7`). Tailnet's Global Nameservers (admin console) set to the Pi first, Cloudflare `1.1.1.1`/`1.0.0.1` as fallback. SSH access configured: user `onkar`, key `~/.ssh/id_ed25519_raspberrypi`, also reachable at `raspberrypi.local`/`192.168.0.199` on LAN.
+
+**Results**: Pi-hole dashboard (`/admin/`, self-signed cert, 47-day auto-renewal) reachable over Tailscale via both raw tailnet IP and MagicDNS name (`raspberrypi-pihole.tail2f4a36.ts.net`). SSH working via key.
+
+**Problems**: none logged for the initial build.
+
+**Lessons**: `pihole-FTL` listens on `0.0.0.0:80`/`0.0.0.0:443` (all interfaces) with an empty (allow-all) ACL, and the Pi runs no host firewall (no ufw/firewalld) — the only thing actually restricting reachability is Tailscale's own iptables chains. Worth keeping in mind since it's a different exposure model than the Fedora box's firewalld-fronted setup.
+
+**Next steps**: planned reflash to Raspberry Pi OS **Lite** (64-bit, trixie-based) to drop the unused desktop stack (the Pi is managed SSH-only; the desktop environment is installed but never used) — discussed 2026-08-06, not yet executed as of this entry.
+
+---
+
+## 2026-08-05 — Formal PP/TG benchmark of both production llama-server instances
+
+**Goal**: replace the incidental, single-observation tok/s figures for the two production models with a real, repeatable benchmark.
+
+**Changes**: wrote `bench-llama-server.py` (repo root) — hits a running `llama-server`'s native `/completion` endpoint, 1 warmup + 5 timed runs per phase, `cache_prompt:false` for clean prompt-processing (PP) numbers and `ignore_eos:true` to force a fixed token count for generation (TG). Launched `start-qwen3-uncensored.sh`, benchmarked, stopped it; launched `start-gemma-uncensored.sh`, benchmarked, stopped it — mutually exclusive, one at a time, same as normal operation.
+
+**Results**:
+- Qwen3-4B-Instruct-2507-heretic-av2 (port 8081): PP 150.26 ± 0.34 tok/s (600 tok prompt), TG 10.41 ± 0.03 tok/s (128 forced tokens), 680MB RSS.
+- Gemma-4-E4B-Uncensored-HauhauCS-Aggressive (port 8082): PP 100.61 ± 0.34 tok/s (601 tok prompt), TG 7.34 ± 0.01 tok/s (128 forced tokens), 3.07GB RSS (bigger footprint from `--swa-full` + q8_0 KV cache).
+- Both runs clean — zero new `gpu-fence-alerts.log` entries, no errors in either server log.
+- `docs/benchmarks.md` updated with a dedicated formal-benchmark section; two TODO items closed (formal PP numbers, a scripted harness for the llama.cpp side).
+
+**Next steps**: no GPU-memory (Vulkan-visible) figures measured directly, only RSS. A combined harness spanning both llama.cpp and OVMS backends still doesn't exist (`test_ov_qwen.py` remains separate).
+
+---
+
+## 2026-08-05 — Censored models deleted from Fedora; `start-qwen3.sh`/`start-gemma-e4b.sh` removed and every doc reference synced
+
+**Goal**: user confirmed only uncensored models are being kept on this Fedora box going forward (censored `Qwen3-4B-Instruct-2507`, `gemma-4-E4B-it` + `mmproj-F16.gguf` had already been deleted from `models/` independently, discovered as a side effect of the same-day `llama.cpp` update entry above when a smoke-test launch script pointed at a missing file). Scope: delete the two now-dead launch scripts and bring every doc/script reference back in sync with reality, rather than leave a broken "production" story on the books.
+
+**Changes**:
+- Deleted `start-qwen3.sh` and `start-gemma-e4b.sh` (both pointed at model files that no longer exist).
+- `start-open-webui.sh`: dropped port 8080 from `OPENAI_API_BASE_URLS`/`OPENAI_API_KEYS` (2 URLs now, not 3) and updated its comments accordingly. **Not yet applied to the live container** — `OPENAI_API_BASE_URLS` only takes effect at container creation, and `open-webui` already exists (currently stopped, 14h idle at time of writing) with the old 3-URL value baked in; needs `podman rm open-webui` + rerunning the script to actually pick up the change. Left undone pending the user's OK, since removing a container (even an idle one whose data lives in a separate named volume) is a real action.
+- `start-qwen3-uncensored.sh` / `start-gemma-uncensored.sh`: added a `STATUS (2026-08-05)` banner at the top of each noting they're now the sole production server for their respective model family, and fixed the handful of comments that made operationally-wrong claims about a still-running port 8080 (`Port 8081 (production Qwen3/Gemma stay on 8080)` → corrected to reflect only the other uncensored script exists now). Left alone the comments whose *historical reasoning* still holds even though they reference a deleted sibling file (e.g. "same base model as start-qwen3.sh, so the same two fixes apply") — the reasoning is still true, only the pointer target is gone.
+- `SETUP.md`: directory layout, "Models in production" table, and the two Fedora/Windows per-script comparison tables (Qwen3 solo-chat, Gemma vision-chat) all updated — Fedora columns marked historical/deleted 2026-08-05, Windows columns left untouched (not verified changed, out of scope — Windows wasn't touched this session).
+- `README.md`: Quick Start, directory tree, and benchmarks summary table updated to the 2-script/2-port lineup.
+- `docs/architecture.md`: mermaid diagram's third node (`llama-server: Qwen3-4B, :8080 (production)`) removed, `×3 registered` → `×2`, "Three chat models registered" design-decision bullet → "Two".
+- `docs/troubleshooting.md`: the port-conflict entry now separates a Windows cause (still real, `Start-Server.bat`/`Start-Server-Gemma4-E4B.bat` both bind 8080) from a Fedora cause (historical only — the two surviving Fedora scripts use different ports and don't actually conflict).
+- `docs/models.md`: comparison table rows for the two deleted models struck through and marked deleted; the two uncensored variants' rows updated from "Secondary"/no explicit status to **Production**, and corrected a factual error caught while editing — `Gemma-4-E4B-Uncensored-HauhauCS-Aggressive`'s launch script loads no `--mmproj`, so despite being a fine-tune of a vision-capable base, it is **not** vision-capable as actually configured; the table previously would have inherited "Vision chat" by association if left unedited.
+- `docs/benchmarks.md`: left the historical per-model rows as originally measured (per this repo's stated policy of not retroactively editing recorded history) but added one clarifying note at the top that the "production"/"port 8080" labels on the now-deleted models' rows are historical, not current.
+
+**Results**: `grep -rl` for the deleted script names and deleted model filenames across all `.md`/`.sh` files came back clean except for (a) intentional historical/cross-reference mentions inside the STATUS banners and updated docs above, (b) `JOURNAL.md`'s own past entries (correctly left untouched — journal is a historical record, not a live-state doc), and (c) one unrelated generic example in a `.claude` skill's reference doc (not project-specific, out of scope). Fixed one additional stale anchor link in `docs/troubleshooting.md` that pointed at a SETUP.md section header whose text changed as part of this sync.
+
+**Problems**: none technical — this was a documentation-consistency sweep, not a code change. The main risk was scope creep (how far to chase "this file mentions a deleted script" across the repo) — resolved by fixing every reference that asserts something about *current* state (ports, what's running, what a script does) while leaving alone references that are purely historical narrative (JOURNAL entries, benchmark measurements as originally recorded) — matching this repo's own stated distinction between the two document types.
+
+**Lessons**: deleting a file that many other docs point to is not a single-file operation in a repo this cross-referenced — `grep -rl <name>` across the whole tree before considering a deletion "done" is the only way to catch every doc that silently went stale, and running it *after* the edits (not just before) is what caught the couple of remaining references this pass would otherwise have missed. Also: a table row inherited from a sibling row via copy-paste (Gemma-Uncensored's "Vision chat" label, apparently carried over from the censored Gemma row it replaced in someone's mental model) is exactly the kind of factual error that surfaces when actually re-deriving a table from the real script flags rather than trusting the existing label — worth spot-checking claimed capabilities against the actual launch flags whenever touching a model-comparison table, not just when first writing it.
+
+**Next steps**: decide whether to recreate the `open-webui` container now (`podman rm open-webui` then rerun `start-open-webui.sh`) so its baked-in `OPENAI_API_BASE_URLS` drops the dead port-8080 entry — low risk (data lives in the separate `open-webui-data` volume) but left for the user to trigger explicitly rather than done unprompted. Windows (`C:\LocalAI`) was not touched or verified this session — if the same "uncensored only" policy applies there too, its docs/scripts have the same staleness this entry just fixed on the Fedora side.
+
+---
+
+## 2026-08-05 — Fedora `llama.cpp` updated to latest upstream (`d2a8182` → `61881b1`), three local crash-prevention patches carried forward
+
+**Goal**: update the Fedora source build of `llama.cpp` to the latest upstream, since it had been sitting 143 commits behind (`d2a8182`, 2026-07-26) with no version-tracking discipline like the Windows precompiled-build side has (SETUP.md's `bin`/`bin-b9305-backup` rollback pattern).
+
+**Changes**: before touching anything, confirmed the working tree had zero local commits ahead of `origin/master` (`git log origin/master..HEAD` = 0) — only uncommitted patches to three files (`ggml/src/ggml-vulkan/ggml-vulkan.cpp`, `tools/server/server-context.cpp`, `tools/server/server-task.cpp`), all three being the `DeviceLostError`/crash-prevention patches from 2026-07-28. Backed the diff up to a scratch file, `git stash`ed it, fast-forwarded `master` to `origin/master` (`d2a8182` → `61881b1`, 2026-08-05's tip), then `git stash pop`'d — all three patches auto-merged cleanly despite real upstream churn in the same files (`server-context.cpp`/`server-task.cpp` both had unrelated changes in this window, e.g. a `f_sim_best` variable rename next to the `prompt_load` patch site; `ggml-vulkan.cpp` had 392 lines of unrelated diff). Diffed the reapplied patches against the pre-update versions to confirm they landed as the same logical change, not just a syntactically-clean merge in the wrong place.
+
+**Results**:
+- **Checked whether upstream had since fixed any of the three bugs before reapplying** (grepped `origin/master`'s versions of the same call sites) — none had; all three are still needed.
+- Reconfigured (`cmake -B build`) and rebuilt just the `llama-server` target (the only binary any script here actually references — confirmed via `grep -rl "build/bin/llama-server"` across all `start-*.sh`), clean build, no errors or warnings on the three patched files. `./bin/llama-server --version` → `version: 144 (61881b1)`.
+- **Smoke-tested end-to-end**, not just a version-string check: launched `start-qwen3-uncensored.sh` (the only script pointing at a model file that still exists on disk — `start-qwen3.sh`'s `Qwen3-4B-Instruct-2507-UD-Q4_K_XL.gguf` has since been replaced by the heretic-abliterated variant and no longer exists), waited for `/health` → `{"status":"ok"}`, then a real `/v1/chat/completions` request ("capital of France") → `Paris`. Stopped the test server afterward (`kill`) to leave the box in the same idle state it was in before this task (no server had been running).
+- Updated SETUP.md's patch note (previously said "two" patches — Gemma-specific working memory that had gone stale since the third, `ggml-vulkan.cpp` patch was added the same day (2026-07-28, later that session) but never synced into this file). Corrected to three patches, clarified they apply to every model script on this build, not just Gemma's, and noted they were confirmed still necessary/carried forward on this date.
+
+**Problems**: none — the update was uneventful. The three patches being small, self-contained `try/catch` wraps (rather than deep logic changes) is almost certainly why they merged cleanly despite real churn in the same files; a patch touching more of a function's control flow would be more exposed to this kind of upstream drift.
+
+**Lessons**: `git stash` / fast-forward / `git stash pop` is sufficient for carrying small local patches across a large upstream jump (143 commits, 343 files) as long as there are zero local commits diverging from origin — no need for a manual patch-file `apply --3way` dance unless the stash-pop actually conflicts. Worth diffing the reapplied patches against their pre-update form regardless of a clean auto-merge, since "merged without conflict markers" isn't the same guarantee as "landed at the same logical call site" when the file has moved around underneath it. Separately: SETUP.md's "two patches" line had drifted out of sync with JOURNAL.md's own record of a third patch being added — a reminder that a doc summarizing a JOURNAL narrative can silently go stale even when the journal itself stays accurate; worth grepping doc summaries for factual claims (counts, file lists) whenever a related update touches the same area.
+
+**Next steps**: none of the three patches have been filed upstream yet (still true as of this entry — see 2026-07-28's reasoning on filing after more field-verification). The Fedora build still has no version-pin/rollback story analogous to Windows's `bin-b9305-backup` folder; if that's ever wanted, the shallow-clone nature of this checkout (`git rev-parse --is-shallow-repository` → true) would need addressing first, since it limits how far back a rollback could reach.
+
+---
+
 ## 2026-08-04 — OVMS tuning pass on `qwen3.5-9b-text`: cache_dir win confirmed, concurrency-ceiling explanation from the previous entry disproven
 
 **Goal**: act on the tuning recommendations from the prior session's concurrency testing — add `--cache_dir`, `--kv_cache_precision u8`, `--cache_size 2`, `--metrics_enable` to `start-ovms-qwen3.5-9b-text.sh` — and re-measure to confirm they actually helped rather than assuming they would.

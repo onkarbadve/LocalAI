@@ -1,15 +1,27 @@
 # Benchmarks
 
-Real numbers observed during actual use and testing on the [hardware documented here](hardware.md) (Intel i5-12500H, Iris Xe iGPU, Vulkan, 16GB RAM). Nothing here is a synthetic/standardized benchmark run — every figure was measured incidentally while validating a feature or chasing a bug, and is sourced from [JOURNAL.md](../JOURNAL.md) and [SETUP.md](../SETUP.md). See [models.md](models.md) for what each model in the table below is actually for. TODO markers are left where no measurement has been made.
+Real numbers observed during actual use and testing on the [hardware documented here](hardware.md) (Intel i5-12500H, Iris Xe iGPU, Vulkan, 16GB RAM). Nothing here is a synthetic/standardized benchmark run — every figure was measured incidentally while validating a feature or chasing a bug, and is sourced from [JOURNAL.md](../JOURNAL.md) and [SETUP.md](../SETUP.md). See [models.md](models.md) for what each model in the table below is actually for. TODO markers are left where no measurement has been made. **"Production"/"port 8080" labels below on the censored `Qwen3-4B-Instruct-2507` and `Gemma 4 E4B-it` rows are historical** — both models and their launch scripts were deleted 2026-08-05 (only uncensored models are kept on this box now); left as measured at the time rather than rewritten, per this repo's convention of not retroactively editing recorded history.
 
 ## Generation speed
 
 | Model | Quant | Context | Generation speed | Prompt processing | RAM (RSS) | GPU Memory (Vulkan-visible) | Notes |
 |-------|-------|---------|-------------------|--------------------|-----------|------------------------------|-------|
-| Qwen3-4B-Instruct-2507 | Unsloth Dynamic Q4_K_XL | 24576 | ~9–9.8 tok/s | ~28 tok/s warm, ~2.5 tok/s cold-start (first request after boot) | ~530MB (confirms GPU-resident, not CPU) | ~6GB (documented, solo) | Production chat/coding/agent model. Port 8080. |
-| Qwen3-4B-Instruct-2507-heretic-av2 (abliterated) | mradermacher Q4_K_M | 24576 | ~11.58 tok/s generation | ~34 tok/s prompt processing | TODO | ~6GB (same base model, same context) | Blunt/direct assistant. Port 8081. Verified genuine Vulkan execution (not CPU/llvmpipe fallback). |
-| Gemma 4 E4B-it + mmproj | Unsloth Dynamic Q4_K_XL | 8192 (reduced from 16384) | ~9–9.8 tok/s | ~28 tok/s warm, ~2.5 tok/s cold-start | TODO | TODO | Deprioritized — vision fallback, not actively used. |
+| Qwen3-4B-Instruct-2507 | Unsloth Dynamic Q4_K_XL | 24576 | ~9–9.8 tok/s | ~28 tok/s warm, ~2.5 tok/s cold-start (first request after boot) | ~530MB (confirms GPU-resident, not CPU) | ~6GB (documented, solo) | Deleted 2026-08-05 (censored model). Was port 8080. |
+| Qwen3-4B-Instruct-2507-heretic-av2 (abliterated) | mradermacher Q4_K_M | 24576 | ~11.58 tok/s (incidental, superseded below) | ~34 tok/s (incidental, superseded below) | 680MB RSS (measured 2026-08-05) | ~6GB (same base model, same context) | Production chat/coding/agent model. Port 8081. Verified genuine Vulkan execution (not CPU/llvmpipe fallback). |
+| Gemma 4 E4B-it + mmproj | Unsloth Dynamic Q4_K_XL | 8192 (reduced from 16384) | ~9–9.8 tok/s | ~28 tok/s warm, ~2.5 tok/s cold-start | TODO | TODO | Deleted 2026-08-05 (censored model + mmproj). Was port 8080. |
+| Gemma-4-E4B-Uncensored-HauhauCS-Aggressive | Q4_K_P | 16384 | see formal benchmark below | see formal benchmark below | 3.07GB RSS (measured 2026-08-05; `--swa-full` + q8_0 KV cache, larger than Qwen's) | ~5.3GB | Production chat, text-only (no `--mmproj`). Port 8082. |
 | Qwen2.5-Coder-1.5B *(Windows only)* | Q4_K_M | 4096 | ~25 tok/s (per author's notes) | TODO | TODO | full offload, `-ngl 99` | Autocomplete only. |
+
+### Formal benchmark, 2026-08-05 — both production servers, live
+
+Superseding the incidental "~11.58 tok/s"/"~34 tok/s" figures above (single-observation, captured mid-task rather than as a dedicated benchmark) — this is the first run using a repeatable methodology and a standing script (`bench-llama-server.py`, repo root). Each `llama-server` instance was launched via its real production `start-*.sh` script (same flags used in daily use — see [SETUP.md](../SETUP.md)), benchmarked, then stopped before the next one started (the two are mutually exclusive on this iGPU's memory budget, same as normal operation). Methodology: 1 untimed warmup + 5 timed runs per phase; prompt-processing (PP) uses a 600-601 token prompt with `cache_prompt:false` forcing full uncached evaluation each run; generation (TG) forces exactly 128 tokens via `ignore_eos:true` so runs are directly comparable. Mean ± stdev via the server's own `timings.prompt_per_second`/`timings.predicted_per_second` fields (no client-side timing).
+
+| Model | Port | PP (600-601 tok prompt) | TG (128 tok forced) |
+|---|---|---|---|
+| Qwen3-4B-Instruct-2507-heretic-av2 | 8081 | 150.26 ± 0.34 tok/s | 10.41 ± 0.03 tok/s |
+| Gemma-4-E4B-Uncensored-HauhauCS-Aggressive | 8082 | 100.61 ± 0.34 tok/s | 7.34 ± 0.01 tok/s |
+
+Both runs completed with zero new entries in `~/.local/share/gpu-fence-alerts.log` (checked before/after each) — no fence-timeout/device-lost activity during either benchmark. Qwen is faster on both axes, consistent with it being the smaller/denser model (Q4_K_M, dense architecture) vs. Gemma's larger footprint, `-ctk`/`-ctv q8_0` quantized KV cache, and `--swa-full`. These PP/TG numbers aren't directly comparable to the OVMS table below (different prompt, different context length, different backend) — treat each table as internally consistent, not cross-comparable.
 
 ## OpenVINO / OVMS (evaluated backend, not in daily use)
 
@@ -68,9 +80,9 @@ Zero failures across all 9 tests. Full test table in [JOURNAL.md](../JOURNAL.md)
 
 ## TODO — not yet measured
 
-- [ ] Formal prompt-processing tok/s for Qwen3-4B-Instruct-2507-heretic-av2 and Gemma 4 E4B (RAM/GPU memory columns above)
+- [x] Formal prompt-processing tok/s for the two production models (`Qwen3-4B-Instruct-2507-heretic-av2`, `Gemma-4-E4B-Uncensored-HauhauCS-Aggressive`) — done 2026-08-05, see the formal benchmark subsection above. GPU-memory (Vulkan-visible) columns still not directly measured (RAM/RSS now is).
 - [ ] Head-to-head quality comparison across models on a fixed prompt set (see [models.md](models.md) for qualitative notes in the meantime)
-- [ ] A repeatable, scripted benchmark harness — currently every number here was captured incidentally during real use, not a standing benchmark suite (tracked in [roadmap.md](roadmap.md#future-ideas))
+- [x] A repeatable, scripted benchmark harness — `bench-llama-server.py` (repo root, added 2026-08-05) benchmarks any running `llama-server` instance via its native `/completion` endpoint with a fixed warmup+timed-runs methodology. Covers the llama.cpp/Vulkan side of this item; the OpenVINO/OVMS side still uses the separate `test_ov_qwen.py` script, and there's no single harness spanning both backends yet (tracked in [roadmap.md](roadmap.md#future-ideas)).
 
 ## Related documents
 
