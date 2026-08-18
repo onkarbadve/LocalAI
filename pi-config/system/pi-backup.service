@@ -1,0 +1,8 @@
+[Unit]
+Description=Full-environment backup (configs, DBs, Pi-hole, system config)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=onkar
+ExecStart=/usr/local/bin/pi-backup.sh

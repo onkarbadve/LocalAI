@@ -1,0 +1,23 @@
+[Unit]
+Description=Homepage dashboard
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+AutoUpdate=registry
+Image=ghcr.io/gethomepage/homepage:v2.0.0
+ContainerName=homepage
+Network=host
+DNS=127.0.0.1
+Environment=PUID=1000
+Environment=PGID=1000
+Environment=TZ=Etc/UTC
+Environment=HOMEPAGE_ALLOWED_HOSTS=raspberrypi:3000,raspberrypi.local:3000,192.168.0.199:3000,100.102.227.7:3000,raspberrypi-pihole.tail2f4a36.ts.net:3000
+Volume=/home/onkar/media-stack/config/homepage:/app/config
+Volume=/run/user/1000/podman:/run/podman
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

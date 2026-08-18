@@ -8,6 +8,8 @@ This is a personal engineering notebook for a dual-OS (Windows + Fedora) local L
 
 Start with [README.md](README.md) for the overview, then [SETUP.md](SETUP.md) for hardware/flags/directory layout, and [docs/](docs/) for deeper topic-specific reference. Do not explore `llama.cpp/` or `models/` to understand this repo's own structure — they're upstream/binary content excluded from Git (see [docs/hardware.md](docs/hardware.md#why-models-and-llamacpp-arent-in-git)); only read `llama.cpp/AGENTS.md` when actually working inside that directory.
 
+This repo also tracks `pi-config/` — reproducible, secret-free system config for the separate Raspberry Pi box (Quadlet units, nftables, Caddy, watchdog/arbiter scripts, a `provision.sh`). The Pi itself is still not part of this repo (it's a separate physical machine, documented in [docs/overall-setup.md](docs/overall-setup.md) because the two boxes are managed as one system) — only its config shape is tracked here. Never commit anything under `pi-config/` without grepping it for secrets first (WiFi PSK, API keys, tokens) — see [pi-config/README.md](pi-config/README.md) for exactly what's excluded and why.
+
 ## Coding conventions
 
 - Shell scripts (`start-*.sh`) use `#!/usr/bin/env bash` and `exec` into the final process rather than wrapping it, so signals pass through cleanly.
