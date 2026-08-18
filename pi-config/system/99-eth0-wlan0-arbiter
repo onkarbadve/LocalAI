@@ -1,0 +1,47 @@
+#!/bin/bash
+# /etc/NetworkManager/dispatcher.d/99-eth0-wlan0-arbiter
+#
+# Arbitrates between eth0 (eth0-static) and wlan0 (Badve) so they never both
+# claim 192.168.0.199/24 at once. See JOURNAL.md / rpi5_pihole_tailscale_setup.md
+# memory on the Fedora box, and ~/.claude/CLAUDE.md on this Pi, for the full
+# .199-double-claim incident this closes.
+#
+# NM dispatcher scripts run synchronously inside NetworkManager's own process;
+# calling nmcli directly here can deadlock it (nmcli talks back to NM over
+# D-Bus while NM is blocked running this very script). Every nmcli call is
+# therefore dispatched via `systemd-run --no-block`, the same pattern
+# wifi-watchdog.sh already uses safely.
+#
+# Deliberately does NOT touch the WiFi radio switch (`nmcli radio wifi`) - that
+# state persists across reboots, and a botched off/on already caused a real
+# lockout earlier in this investigation (see the journal). Uses per-connection
+# autoconnect + explicit up/down instead, scoped to just the Badve profile, so
+# a missed "down" event can't leave the whole radio disabled.
+#
+# Backstop if the "down" case is ever missed (e.g. power lost with the cable
+# in, then physically unplugged before a clean shutdown): wifi-watchdog.sh's
+# first escalation step is `nmcli connection up Badve`, which activates the
+# profile regardless of its autoconnect setting - so WiFi still self-heals
+# within ~4 minutes even if this script's own recovery path never fires.
+
+IFACE="$1"
+ACTION="$2"
+
+[ "$IFACE" = "eth0" ] || exit 0
+
+dispatch() {
+    systemd-run --no-block --collect --unit="eth-arbiter-$(date +%s)" bash -c "$1"
+}
+
+case "$ACTION" in
+    up)
+        logger -t eth0-wlan0-arbiter "eth0 up - disabling wlan0 (Badve) autoconnect and disconnecting to avoid .199 double-claim"
+        # Order matters: autoconnect off BEFORE down, or NM re-activates Badve
+        # immediately since autoconnect is still on at the moment of the down.
+        dispatch "logger -t eth0-wlan0-arbiter 'dispatched: disabling autoconnect + bringing Badve down'; nmcli connection modify Badve autoconnect no; nmcli connection down Badve; logger -t eth0-wlan0-arbiter \"dispatched: done, exit \$?\""
+        ;;
+    down)
+        logger -t eth0-wlan0-arbiter "eth0 down - re-enabling wlan0 (Badve) autoconnect and reconnecting"
+        dispatch "logger -t eth0-wlan0-arbiter 'dispatched: re-enabling autoconnect + bringing Badve up'; nmcli connection modify Badve autoconnect yes; nmcli connection up Badve; logger -t eth0-wlan0-arbiter \"dispatched: done, exit \$?\""
+        ;;
+esac

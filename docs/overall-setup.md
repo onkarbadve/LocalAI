@@ -1,6 +1,6 @@
 # Overall Setup — Fedora Laptop + Raspberry Pi 5
 
-Full current-state reference across both machines, written 2026-08-18 for external review (Codex). The Pi isn't part of this git repo (it's a separate physical box with its own config, documented only in this file + Claude's project memory) but is included here since the two machines share a LAN, a Tailscale tailnet, and — as of today — a firewall posture that was designed together. For narrower detail: [SETUP.md](../SETUP.md) is the flag-by-flag LocalAI/llama.cpp reference (Fedora only), [JOURNAL.md](../JOURNAL.md) is the dated incident/decision log for both boxes, [network-ipv6-setup.md](network-ipv6-setup.md) is *just* today's IPv6/firewall/Caddy work in isolation.
+Full current-state reference across both machines, written 2026-08-18 for external review (Codex). The Pi is a separate physical box and still isn't *itself* part of this git repo, but its reproducible config shape now is — see [pi-config/](../pi-config/) — since the two machines share a LAN, a Tailscale tailnet, and — as of today — a firewall posture that was designed together. Secrets and accumulated state live only in the backup archive (see [pi-backup-restore.md](pi-backup-restore.md)), never in Git. For narrower detail: [SETUP.md](../SETUP.md) is the flag-by-flag LocalAI/llama.cpp reference (Fedora only), [JOURNAL.md](../JOURNAL.md) is the dated incident/decision log for both boxes, [network-ipv6-setup.md](network-ipv6-setup.md) is *just* today's IPv6/firewall/Caddy work in isolation.
 
 ## Network topology (applies to both boxes)
 
@@ -33,7 +33,7 @@ Censored variants (port 8080) were deleted 2026-08-05 — this box now only serv
 | metube | 8083 | yt-dlp browser UI, standalone |
 | ovms-qwen3-8b / -text / -vision | 8084/8085/8086 | OVMS models above |
 
-All 7 converted to Quadlet 2026-08-14 (fresh `podman run --replace` every start, fixing a stale-container-on-image-update bug the old hand-rolled scripts had). `AutoUpdate=registry` on the first four, `local` on the three OVMS ones (deliberate — GPU-runtime freshness needs a manual check first). None boot-autostart; `start-*.sh` wrapper scripts unchanged. `podman-auto-update.timer` + a companion `podman-image-prune.timer` (daily) both enabled.
+All 7 converted to Quadlet 2026-08-14 (fresh `podman run --replace` every start, fixing a stale-container-on-image-update bug the old hand-rolled scripts had). `AutoUpdate=registry` on the first four, `local` on the three OVMS ones (deliberate — GPU-runtime freshness needs a manual check first). None boot-autostart; `start-*.sh` wrapper scripts unchanged. `podman-auto-update.timer` + a companion `podman-image-prune.timer` (daily) both enabled — **fixed 2026-08-18**: the prune service ran `podman image prune -af`, which (since these services are on-demand + Quadlet's `--rm`) deleted every image daily instead of just dangling ones, forcing a full re-pull on every start; now `-f` only.
 
 **Remote access**: Tailscale (`tailscale0` in firewalld's `trusted` zone), Open WebUI reachable at `http://fedora.tail2f4a36.ts.net:3000` from any tailnet device. `open-terminal` deliberately stays `127.0.0.1`-only (shell-execution service, not worth the exposure even over Tailscale).
 
@@ -85,7 +85,7 @@ Had **no firewall at all** before today. Now `nftables`, default-deny, enabled +
 
 **New this session, on top of the firewall**:
 - **DuckDNS** (`aagaumulga.duckdns.org`) — tracks the Pi's IPv6 via a 3-minute systemd timer, `AAAA`-only (the stale CGNAT'd `A` record was cleared, it was breaking cert issuance).
-- **Caddy** — reverse-proxies `aagaumulga.duckdns.org` → Jellyfin only. Real Let's Encrypt cert, auto-renewing.
+- **Caddy** — reverse-proxies `aagaumulga.duckdns.org` → Jellyfin only. Real Let's Encrypt cert, auto-renewing. Jellyfin's `KnownProxies` was empty until **2026-08-18** (every request, including real public users, was logging as `127.0.0.1`); now set to `127.0.0.1` so it trusts Caddy's forwarded client IP.
 - **Router IPv6 firewall pinholes** — TCP 80/443 → the Pi, added in the Archer's admin UI (a second, independent blocker found along the way: the router itself was silently dropping unsolicited inbound IPv6 even with the Pi's own firewall open).
 - Homepage's Pi-hole widget fixed (was pointed at the now-relocated port 80).
 
@@ -100,13 +100,20 @@ Had **no firewall at all** before today. Now `nftables`, default-deny, enabled +
 | Homepage dashboard | `http://192.168.0.199:3000/` | not reachable |
 | Sonarr/Radarr/Prowlarr/qBittorrent/etc. | `http://192.168.0.199:<port>` | not reachable |
 | Open WebUI (Fedora) | `http://fedora.tail2f4a36.ts.net:3000` | not reachable |
-| SSH to Pi | `ssh -i ~/.ssh/id_ed25519_raspberrypi -o IdentitiesOnly=yes onkar@raspberrypi-pihole` | — |
+| SSH to Pi | `ssh -i ~/.ssh/id_ed25519_raspberrypi -o IdentitiesOnly=yes onkar@raspberrypi-pihole` | not reachable — closed 2026-08-18, LAN/Tailscale only now |
+
+## Backup & recovery
+
+Nightly automated backup (Pi, 01:30) + daily off-box pull (Fedora, 09:00), both timers
+enabled. Two independent copies (`~/backups` on the Pi, `~/pi-backups` on Fedora —
+deliberately outside this git repo, contains secrets). Full detail, restore procedure,
+and the restore test actually performed: [pi-backup-restore.md](pi-backup-restore.md).
 
 ## Known open items (both boxes)
 
 1. Jellyfin account password strength unverified — check manually now that it's genuinely internet-facing.
 2. mDNS broken on the Fedora laptop (pre-existing, `systemd-resolved`-side) — root cause not fixed, workaround (Tailscale hostname) in place.
-3. Pi-hole's API key was exposed in this session's tool output while diagnosing the Homepage widget — rotate (`pihole -a -p`) if that matters.
+3. Pi-hole's API/admin auth was found already broken (empty `app_pwhash`, cause not fully pinned down) then deliberately set to a **blank password** 2026-08-18, i.e. auth disabled entirely — confirmed `/api/auth` and `/api/stats/summary` both return full data unauthenticated. Still LAN/Tailscale-only (not internet-facing) per the nftables ruleset, but any LAN/tailnet device can now read/modify Pi-hole's config with no credential. Open question: is this intentional/permanent, or should a real app password be set again? Homepage's widget key updated to match (`key: ""`).
 4. No external vantage-point port scan performed — everything was verified via Let's Encrypt's validators succeeding (a real external signal) plus LAN-side testing, not a deliberate scan from outside.
 5. Transmission's UPnP/NAT-PMP setting should be turned off (dead weight now, never worked under CGNAT) — not verified done.
 6. Storage expansion for the arr-stack (4TB HDD decided in principle, not purchased) and the Pi's ethernet migration (parts tested and ready, cable not yet run) are both open, unrelated to networking.

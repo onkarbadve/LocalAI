@@ -1,0 +1,7 @@
+[Unit]
+Description=WiFi watchdog (recover wlan0 when the gateway stops answering)
+After=network.target NetworkManager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wifi-watchdog.sh

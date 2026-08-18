@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the WiFi watchdog every 2 minutes
+
+[Timer]
+# Give the box time to boot and associate before the first check, so a slow
+# association is never mistaken for a wedge.
+OnBootSec=5min
+OnUnitActiveSec=2min
+AccuracySec=10s
+Unit=wifi-watchdog.service
+
+[Install]
+WantedBy=timers.target
