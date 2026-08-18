@@ -25,25 +25,16 @@
 # metadata embedding intentionally left off here - MeTube's own UI already
 # has per-download checkboxes for those, no need to hardcode them.
 #
-# First run creates the Podman volume + container. Later runs just restart
-# the existing container (fast) unless it's already running.
+# Managed by systemd/Quadlet (~/.config/containers/systemd/metube.container)
+# since 2026-08-14 - see JOURNAL.md that date. Config changes go in that unit
+# file (+ `systemctl --user daemon-reload`), not this script.
 #
 # UI: http://localhost:8083
 
-CONTAINER=metube
-
-if podman container exists "$CONTAINER"; then
-  if [ "$(podman inspect -f '{{.State.Running}}' "$CONTAINER")" = "true" ]; then
-    echo "$CONTAINER is already running - http://localhost:8083"
-    exit 0
-  fi
-  echo "Starting existing $CONTAINER container..."
-  exec podman start -a "$CONTAINER"
+if systemctl --user is-active --quiet metube.service; then
+  echo "metube is already running - http://localhost:8083"
+  exit 0
 fi
 
-exec podman run -d \
-  --name "$CONTAINER" \
-  -p 127.0.0.1:8083:8081 \
-  -v /home/onkar/Videos/yt-dlp:/downloads:Z \
-  -e YTDL_OPTIONS='{"format":"bestvideo+bestaudio/best","merge_output_format":"mp4","restrictfilenames":true,"retries":10,"fragment_retries":10,"concurrent_fragment_downloads":4}' \
-  ghcr.io/alexta69/metube
+systemctl --user start metube.service
+echo "metube started - http://localhost:8083"

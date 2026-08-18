@@ -39,10 +39,15 @@
 # mutually exclusively (see each script's own memory-budget comment) -
 # whichever one isn't currently running just shows as unreachable in the
 # model picker rather than error at Open WebUI's own startup.
-# NOTE: this env var only applies at container *creation*. The existing
-# open-webui container (already created) still has the old 8080-inclusive
-# value baked in until it's removed (`podman rm open-webui`, data survives in
-# the open-webui-data volume) and recreated by rerunning this script.
+# NOTE (updated 2026-08-14, Quadlet migration): env vars here are just
+# documentation now, not the source of truth - the real config lives in
+# ~/.config/containers/systemd/open-webui.container. Edit that file, then
+# `systemctl --user daemon-reload && systemctl --user restart open-webui`
+# to apply - Quadlet recreates the container from the unit file on every
+# start, so there's no more stale-config gotcha like the old `podman rm`
+# requirement below used to describe. This script itself just does
+# `systemctl --user start`, which is a no-op if already running (same
+# idempotent behavior as before).
 # ENABLE_OLLAMA_API=false: no Ollama running on this box; skips its
 # unreachable-endpoint warnings in the logs.
 # ENABLE_RAG_WEB_SEARCH / RAG_WEB_SEARCH_ENGINE / SEARXNG_QUERY_URL (added
@@ -61,32 +66,19 @@
 # first-visit signup/login stays on rather than leaving an open chat UI
 # exposed to the network.
 #
-# First run creates the Podman volume + container. Later runs just restart the
-# existing container (fast) unless it's already running.
+# Managed by systemd/Quadlet (~/.config/containers/systemd/open-webui.container)
+# since 2026-08-14 - see JOURNAL.md that date for why (auto-update support via
+# `podman-auto-update.timer`, and it fixes a stale-container bug the old
+# `podman start` reuse path here used to have). This script is now a thin
+# wrapper; `systemctl --user status/stop/restart open-webui` also work
+# directly if you don't need the URL echoed back.
 #
 # UI: http://localhost:3000 (first visit creates the local admin account)
 
-CONTAINER=open-webui
-
-if podman container exists "$CONTAINER"; then
-  if [ "$(podman inspect -f '{{.State.Running}}' "$CONTAINER")" = "true" ]; then
-    echo "$CONTAINER is already running - http://localhost:3000"
-    exit 0
-  fi
-  echo "Starting existing $CONTAINER container..."
-  exec podman start -a "$CONTAINER"
+if systemctl --user is-active --quiet open-webui.service; then
+  echo "open-webui is already running - http://localhost:3000"
+  exit 0
 fi
 
-exec podman run -d \
-  --name "$CONTAINER" \
-  --network host \
-  -e PORT=3000 \
-  -e OPENAI_API_BASE_URLS="http://localhost:8081/v1;http://localhost:8082/v1" \
-  -e OPENAI_API_KEYS="sk-no-key-required;sk-no-key-required" \
-  -e ENABLE_OLLAMA_API=false \
-  -e ENABLE_KB_EXEC=true \
-  -e ENABLE_RAG_WEB_SEARCH=true \
-  -e RAG_WEB_SEARCH_ENGINE=searxng \
-  -e SEARXNG_QUERY_URL="http://localhost:8888/search?q=<query>" \
-  -v open-webui-data:/app/backend/data \
-  ghcr.io/open-webui/open-webui:main
+systemctl --user start open-webui.service
+echo "open-webui started - http://localhost:3000"

@@ -40,14 +40,18 @@
 # ~/.config/open-terminal/api-key (chmod 600), read at container start -
 # not hardcoded here.
 #
-# First run creates the Podman volume + container. Later runs just restart
-# the existing container (fast) unless it's already running.
+# Managed by systemd/Quadlet (~/.config/containers/systemd/open-terminal.container)
+# since 2026-08-14 - see JOURNAL.md that date. Quadlet's EnvironmentFile= key
+# can't run `$(cat ...)` inline, so the key is mirrored into
+# ~/.config/open-terminal/api-key.env (KEY=VALUE form, chmod 600) - this
+# script re-derives that file from api-key every run, so rotating the raw
+# key and rerunning this script is still all that's needed.
 #
 # After starting: Open WebUI -> Admin Settings -> Integrations -> Open
 # Terminal -> URL http://localhost:8000, API key from the file above.
 
-CONTAINER=open-terminal
 KEY_FILE="$HOME/.config/open-terminal/api-key"
+ENV_FILE="$HOME/.config/open-terminal/api-key.env"
 
 if [ ! -f "$KEY_FILE" ]; then
   echo "No API key found at $KEY_FILE - generate one first:" >&2
@@ -56,18 +60,13 @@ if [ ! -f "$KEY_FILE" ]; then
   exit 1
 fi
 
-if podman container exists "$CONTAINER"; then
-  if [ "$(podman inspect -f '{{.State.Running}}' "$CONTAINER")" = "true" ]; then
-    echo "$CONTAINER is already running - http://localhost:8000"
-    exit 0
-  fi
-  echo "Starting existing $CONTAINER container..."
-  exec podman start -a "$CONTAINER"
+echo "OPEN_TERMINAL_API_KEY=$(cat "$KEY_FILE")" > "$ENV_FILE"
+chmod 600 "$ENV_FILE"
+
+if systemctl --user is-active --quiet open-terminal.service; then
+  echo "open-terminal is already running - http://localhost:8000"
+  exit 0
 fi
 
-exec podman run -d \
-  --name "$CONTAINER" \
-  -p 127.0.0.1:8000:8000 \
-  -e OPEN_TERMINAL_API_KEY="$(cat "$KEY_FILE")" \
-  -v open-terminal-data:/home/user \
-  ghcr.io/open-webui/open-terminal:slim
+systemctl --user start open-terminal.service
+echo "open-terminal started - http://localhost:8000"

@@ -25,26 +25,18 @@
 # run. If this volume is ever recreated from scratch, that edit needs
 # redoing (see JOURNAL.md 2026-08-01) or Web Search will fail silently.
 #
-# First run creates the Podman volume + container. Later runs just restart
-# the existing container (fast) unless it's already running.
+# Managed by systemd/Quadlet (~/.config/containers/systemd/searxng.container)
+# since 2026-08-14 - see JOURNAL.md that date. Config changes go in that unit
+# file (+ `systemctl --user daemon-reload`), not this script. The
+# settings.yml JSON-format edit above lives in the searxng-data volume,
+# untouched by this migration.
 #
 # API: http://localhost:8888/search?q=<query>&format=json
 
-CONTAINER=searxng
-
-if podman container exists "$CONTAINER"; then
-  if [ "$(podman inspect -f '{{.State.Running}}' "$CONTAINER")" = "true" ]; then
-    echo "$CONTAINER is already running - http://localhost:8888"
-    exit 0
-  fi
-  echo "Starting existing $CONTAINER container..."
-  exec podman start -a "$CONTAINER"
+if systemctl --user is-active --quiet searxng.service; then
+  echo "searxng is already running - http://localhost:8888"
+  exit 0
 fi
 
-exec podman run -d \
-  --name "$CONTAINER" \
-  -p 127.0.0.1:8888:8080 \
-  -e "BASE_URL=http://localhost:8888/" \
-  -e "INSTANCE_NAME=localai-searxng" \
-  -v searxng-data:/etc/searxng:rw \
-  docker.io/searxng/searxng:latest
+systemctl --user start searxng.service
+echo "searxng started - http://localhost:8888"

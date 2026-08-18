@@ -86,29 +86,21 @@
 # AVAILABLE" before sending requests, then curl or point Open WebUI at
 # http://127.0.0.1:8085/v3 - text prompts only.
 
-CONTAINER=ovms-qwen3.5-9b-text
-MODEL_DIR="$HOME/LocalAI/models/Qwen3.5-9B-int4-ov"
-CACHE_VOLUME=ovms-qwen3.5-9b-text-cache
+# Managed by systemd/Quadlet (~/.config/containers/systemd/ovms-qwen3.5-9b-text.container)
+# since 2026-08-14 - see JOURNAL.md that date (also fixes the stale-container
+# bug hit that day: this script used to silently reuse an old container via
+# `podman start` even after a fresh image pull - Quadlet always recreates).
+# Not [Install]-enabled (no boot autostart - GPU contention, same as before).
+# AutoUpdate=local: the timer recreates against whatever's already pulled
+# locally, but never pulls on its own - `podman pull
+# docker.io/openvino/model_server:weekly` yourself first and check logs for
+# CL_OUT_OF_RESOURCES (openvino#36151) before trusting a new build here.
+# Edit the unit file (+ `systemctl --user daemon-reload`) to change flags.
 
-if podman container exists "$CONTAINER"; then
-  if [ "$(podman inspect -f '{{.State.Running}}' "$CONTAINER")" = "true" ]; then
-    echo "$CONTAINER is already running - http://127.0.0.1:8085/v3"
-    exit 0
-  fi
-  echo "Starting existing $CONTAINER container..."
-  exec podman start -a "$CONTAINER"
+if systemctl --user is-active --quiet ovms-qwen3.5-9b-text.service; then
+  echo "ovms-qwen3.5-9b-text is already running - http://127.0.0.1:8085/v3"
+  exit 0
 fi
 
-exec podman run -d \
-  --name "$CONTAINER" \
-  --device /dev/dri \
-  -p 127.0.0.1:8085:8085 \
-  -v "$MODEL_DIR:/models/qwen3.5-9b:ro,Z" \
-  -v "$CACHE_VOLUME:/cache" \
-  docker.io/openvino/model_server:weekly \
-  --port 9001 --rest_port 8085 \
-  --model_name qwen3.5-9b-text --model_path /models/qwen3.5-9b \
-  --task text_generation --target_device GPU \
-  --reasoning_parser qwen3 --tool_parser hermes3 \
-  --cache_dir /cache --kv_cache_precision u8 --cache_size 2 \
-  --metrics_enable
+systemctl --user start ovms-qwen3.5-9b-text.service
+echo "ovms-qwen3.5-9b-text started - http://127.0.0.1:8085/v3"

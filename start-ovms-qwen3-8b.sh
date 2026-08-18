@@ -54,25 +54,19 @@
 # request option, or an Open WebUI model-params setting) - just flagging it
 # so a fresh caller isn't surprised by slow first responses.
 
-CONTAINER=ovms-qwen3-8b
-MODEL_DIR="$HOME/LocalAI/openvino-test/qwen3-8b-int4-ov"
+# Managed by systemd/Quadlet (~/.config/containers/systemd/ovms-qwen3-8b.container)
+# since 2026-08-14 - see JOURNAL.md that date. Not [Install]-enabled (no
+# boot autostart - GPU contention with the other OVMS/Open WebUI GPU
+# consumers, same as before). AutoUpdate=local: `podman-auto-update.timer`
+# will recreate this against whatever image is already pulled locally, but
+# never pulls on its own - `podman pull docker.io/openvino/model_server:latest-gpu`
+# yourself first. Edit the unit file (+ `systemctl --user daemon-reload`) to
+# change flags, not this script.
 
-if podman container exists "$CONTAINER"; then
-  if [ "$(podman inspect -f '{{.State.Running}}' "$CONTAINER")" = "true" ]; then
-    echo "$CONTAINER is already running - http://127.0.0.1:8084/v3"
-    exit 0
-  fi
-  echo "Starting existing $CONTAINER container..."
-  exec podman start -a "$CONTAINER"
+if systemctl --user is-active --quiet ovms-qwen3-8b.service; then
+  echo "ovms-qwen3-8b is already running - http://127.0.0.1:8084/v3"
+  exit 0
 fi
 
-exec podman run -d \
-  --name "$CONTAINER" \
-  --device /dev/dri \
-  -p 127.0.0.1:8084:8084 \
-  -v "$MODEL_DIR:/models/qwen3-8b:ro,Z" \
-  docker.io/openvino/model_server:latest-gpu \
-  --port 9000 --rest_port 8084 \
-  --model_name qwen3-8b --model_path /models/qwen3-8b \
-  --task text_generation --target_device GPU \
-  --reasoning_parser qwen3 --tool_parser hermes3
+systemctl --user start ovms-qwen3-8b.service
+echo "ovms-qwen3-8b started - http://127.0.0.1:8084/v3"

@@ -57,26 +57,17 @@
 # kernel compilation for a 9B model, not measured), then curl or point
 # Open WebUI at http://127.0.0.1:8086/v3 - vision/image prompts only.
 
-CONTAINER=ovms-qwen3.5-9b-vision
-MODEL_DIR="$HOME/LocalAI/models/Qwen3.5-9B-int4-ov"
-PCORE_CPUSET=0-7
+# Managed by systemd/Quadlet (~/.config/containers/systemd/ovms-qwen3.5-9b-vision.container)
+# since 2026-08-14 - see JOURNAL.md that date. Not [Install]-enabled (still
+# written-but-never-launched/tested - keep it that way until someone
+# verifies it end-to-end). AutoUpdate=local, same :weekly-tag reasoning as
+# start-ovms-qwen3.5-9b-text.sh. Edit the unit file (+
+# `systemctl --user daemon-reload`) to change flags.
 
-if podman container exists "$CONTAINER"; then
-  if [ "$(podman inspect -f '{{.State.Running}}' "$CONTAINER")" = "true" ]; then
-    echo "$CONTAINER is already running - http://127.0.0.1:8086/v3"
-    exit 0
-  fi
-  echo "Starting existing $CONTAINER container..."
-  exec podman start -a "$CONTAINER"
+if systemctl --user is-active --quiet ovms-qwen3.5-9b-vision.service; then
+  echo "ovms-qwen3.5-9b-vision is already running - http://127.0.0.1:8086/v3"
+  exit 0
 fi
 
-exec podman run -d \
-  --name "$CONTAINER" \
-  --cpuset-cpus "$PCORE_CPUSET" \
-  -p 127.0.0.1:8086:8086 \
-  -v "$MODEL_DIR:/models/qwen3.5-9b:ro,Z" \
-  docker.io/openvino/model_server:weekly \
-  --port 9002 --rest_port 8086 \
-  --model_name qwen3.5-9b-vision --model_path /models/qwen3.5-9b \
-  --task text_generation --target_device CPU \
-  --reasoning_parser qwen3 --tool_parser hermes3
+systemctl --user start ovms-qwen3.5-9b-vision.service
+echo "ovms-qwen3.5-9b-vision started - http://127.0.0.1:8086/v3"
