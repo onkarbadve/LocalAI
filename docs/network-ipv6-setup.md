@@ -6,9 +6,9 @@ Current-state reference for the home network's IPv6 exposure and the hardening b
 
 - ISP: ACT Fibernet / Beam Telecom (Hyderabad, Tarnaka POP).
 - **IPv4**: behind CGNAT. Router's own WAN IP is `10.158.62.113` (private, RFC 1918); the internet-visible address is `49.204.165.243` (part of `49.204.128.0/18`, "ACTFIBERNET-Tarnaka"). Nothing can initiate an inbound IPv4 connection to this network without a relay (Tailscale, etc.) — this was always true and hasn't changed.
-- **IPv6**: real, globally-routable, no NAT. Prefix `2406:b400:53:1e77::/64` via SLAAC. Every device on the LAN gets its own directly-reachable global address — this is what changed and what everything below responds to.
+- **IPv6**: real, globally-routable, no NAT. Delegated block is `2406:b400:53::/48` via SLAAC; the ISP/router rotates the `/64` subnet ID within that `/48` without notice (observed 3 different subnet IDs — `a692`, `1e77`, `481` — within one ~3-day Pi uptime window on 2026-08-18, unrelated to any reboot on either box; see [JOURNAL.md](../JOURNAL.md)'s 2026-08-19 entry). Every device on the LAN gets its own directly-reachable global address — this is what changed and what everything below responds to.
 - Router: TP-Link Archer AX1500 Wi-Fi 6, admin at `192.168.0.1`, LAN `192.168.0.0/24`.
-- Both boxes' addresses have been stable in practice across the session despite a short (~300s) SLAAC lease lifetime; not guaranteed static, hence the DDNS setup below.
+- **Correction (2026-08-19): the `/64` subnet ID is NOT stable** — the original claim here was wrong, disproven by the rotation above. The `/48` is what's stable (3/3 observed rotations shared it); firewall rules and docs now key off the `/48`, not the `/64`. Host suffixes (SLAAC/privacy-extension) still churn on their own ~300s-ish lease cadence as before. DuckDNS (`duckdns-update.timer`, every 3min) keeps the public hostname correct through all of this regardless.
 
 ## Fedora laptop (`fedora`, `wlp0s20f3`, `192.168.0.126`)
 
@@ -54,7 +54,7 @@ table inet filter {
         iifname "tailscale0" accept
         ip saddr 192.168.0.0/24 accept
         ip6 saddr fe80::/10 accept
-        ip6 saddr 2406:b400:53:1e77::/64 accept
+        ip6 saddr 2406:b400:53::/48 accept   # was a hardcoded /64, rotates — see 2026-08-19 entry
 
         ct state established,related accept
         ct state invalid drop
@@ -77,7 +77,7 @@ table inet filter {
 }
 ```
 
-Effect: everything except SSH (22) and Caddy (80/443) is reachable only from LAN, the whole `2406:b400:53:1e77::/64` prefix (covers LAN devices using their own global IPv6, not just `fe80::` link-local), or Tailscale. This closed off Pi-hole's DNS, the entire arr-stack (Sonarr/Radarr/Prowlarr/qBittorrent/FlareSolverr), Jellyfin, Homepage, Uptime Kuma — all previously wildcard-bound and internet-reachable.
+Effect: everything except SSH (22) and Caddy (80/443) is reachable only from LAN, the whole `2406:b400:53::/48` prefix (covers LAN devices using their own global IPv6, not just `fe80::` link-local — kept as the /48 rather than the currently-assigned /64 since the ISP rotates the /64 subnet ID), or Tailscale. This closed off Pi-hole's DNS, the entire arr-stack (Sonarr/Radarr/Prowlarr/qBittorrent/FlareSolverr), Jellyfin, Homepage, Uptime Kuma — all previously wildcard-bound and internet-reachable.
 
 **Pi-hole** (Core v6.4.3): admin webserver moved from `80`/`443` to `8080`/`8443` to free the standard ports for Caddy —
 ```

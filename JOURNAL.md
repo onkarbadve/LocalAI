@@ -17,6 +17,36 @@ Older entries below predate this template and stay in their original free-form n
 
 ---
 
+## 2026-08-19 — Pi charger swap: power/throughput verification, moved to wired Ethernet
+
+**Goal**: user connected a different power charger to the Pi; verify it isn't undervolting, then confirm services and network health afterward.
+
+**Changes**: none to config — this was a verification/ops session. The Pi was moved from WiFi to wired Ethernet during the course of it (physical change, not a config edit — `wlan0` is now dormant, `eth0` holds the default route).
+
+**Results**:
+- `vcgencmd get_throttled` = `0x0` on every boot checked (before and after a graceful `shutdown -h now` + physical power-on) — no under-voltage or throttling, current or historical, on the new charger. Core voltage ~0.94V, temp 51-58°C, all normal.
+- Mid-session the Pi briefly went unreachable (SSH + `tailscale ping` both timing out); `journalctl --list-boots` afterward showed two short boots (~5.5min, ~5sec) sandwiched right at the charger-swap timestamp before settling into a stable boot — consistent with the physical unplug/replug, not a fault. No under-voltage kernel log lines on any of those boots either.
+- Graceful shutdown (`sudo shutdown -h now`) confirmed clean via loss of Tailscale reachability. Pi has **no remote wake** — Raspberry Pi boards don't keep standby power to the NIC when off, so true WoL isn't possible; a smart plug/relay would be the way to get remote power-cycle capability if that's wanted later. This session's power-on was physical.
+- Post power-on, confirmed wired: `eth0` up at `192.168.0.199`/`1000Mb/s full duplex`, default route via `eth0`, `wlan0` dormant. This sidesteps the WiFi-power-save root cause from the 2026-08-15 outage entry.
+- Pi-hole: `pihole-FTL` active, DNS resolving via `dig @127.0.0.1`, admin web UI `308` (expected Caddy→HTTPS redirect). Jellyfin: service active, `:8096/health` → `200`.
+- Throughput: `iperf3` Pi↔Fedora-laptop (laptop on WiFi) — ~478Mbit/s over the Tailscale tunnel, ~604Mbit/s direct LAN, 0 retransmits either way. Laptop's WiFi link (`iw dev ... link`) was already at its ceiling: 5785MHz/channel 157, 80MHz width, WiFi 6 HE-MCS8/NSS2, PHY 816.7Mbit/s — the AX1500-class router is a 2x2/80MHz part, so ~800Mbit/s PHY (and ~600-700Mbit/s realized TCP) is the actual hardware ceiling for that link, not a misconfiguration. No headroom to gain by forcing 80MHz — it was already negotiated.
+
+**Problems**: none — new charger checks out clean across every boot.
+
+**Lessons**: a `journalctl --list-boots` timestamp right after a physical power event can look internally inconsistent (boot start times that predate the previous boot's end time) because the Pi has no hardware RTC and boots with a stale clock until NTP syncs — read boot *durations* and sequence, not the absolute wall-clock start times, when diagnosing rapid reboots close to a power change. Also: AXnnnn WiFi 6 router model numbers are a marketing sum of both bands' PHY rates (2.4GHz + 5GHz), not a per-band or real-throughput number — don't use it to predict achievable TCP throughput.
+
+**Next steps**: none required; charger and Ethernet move both verified healthy. Optional/deferred: a smart plug for real remote-wake capability, if the user wants that later.
+
+**Addendum, same session: IPv6 prefix had actually changed since the 2026-08-18 firewall doc, and the "stable in practice" claim in that doc was wrong.** Following up on the ethernet/throughput checks, `ip -brief addr` showed the Pi's and Fedora laptop's global IPv6 now in `2406:b400:53:481::/64`, not the `2406:b400:53:1e77::/64` documented the day before — and the Pi's live nftables `input` chain still had `1e77` hardcoded, so the LAN-convenience IPv6 accept rule had gone stale (failed safe — link-local/Tailscale still worked, just not global-IPv6 LAN access). Dug through the Pi's journal (continuous ~3-day uptime spanning the change, boot `15d80b4a...` 2026-08-15 22:00 → 2026-08-18 22:40) to find the actual transition: a *third* prefix, `a692`, was live earlier that boot; `1e77` appeared alongside it around 2026-08-18 12:07 IST (both addresses present on `wlan0` simultaneously for a while — proves this wasn't a Pi reboot causing it, since the Pi didn't reboot at 12:07); then `1e77` was dropped and `481` appeared at 22:40:16, coincident with (but not necessarily caused by) a Pi reboot at that same timestamp. Root cause is upstream — ISP/router-side SLAAC prefix delegation rotating the `/64` subnet ID — not visible from either box's own logs, so the exact ISP mechanism (WAN reconnect vs forced DHCPv6-PD renewal) stays unconfirmed. All three observed subnet IDs (`a692`, `1e77`, `481`) share the same `/48` (`2406:b400:53::/48`), so that's the actually-stable unit.
+
+**Fix applied**: Pi's `/etc/nftables.conf` (backed up first to `/etc/nftables.conf.bak-20260819`) — `ip6 saddr 2406:b400:53:1e77::/64 accept` → `ip6 saddr 2406:b400:53::/48 accept`. Validated (`nft -c -f`), reloaded (`systemctl reload nftables`), confirmed live in `nft list ruleset`, confirmed a **fresh** SSH session still connects post-reload (not just the existing session staying up), `nftables.service` still active. Also updated `docs/network-ipv6-setup.md` and `docs/overall-setup.md` to replace the hardcoded `/64` and the disproven "stable in practice" claim with the `/48`-is-stable finding.
+
+**Also confirmed, no action needed**: `duckdns-update.timer` runs every ~3min and had already kept the public hostname (`aagaumulga.duckdns.org`) correct through the `1e77→481` transition (log-verified) — the public Caddy 80/443 path was never actually affected by any of this, only the LAN-convenience IPv6 rule was stale.
+
+**Lesson**: a hardcoded IPv6 `/64` in a firewall rule is a hidden staleness trap on a connection where the ISP delegates a wider block (`/48` here) and rotates the `/64` within it — "written and verified same-day" doesn't mean "still true tomorrow" for anything sourced from upstream network state, same broader lesson as the 2026-08-18 continuation-audit entry but for infrastructure state instead of application config. When a value like this needs to go in a firewall rule, match on the widest unit that's actually been confirmed stable (via more than one observed rotation), not the narrowest unit that happened to be true at write-time.
+
+---
+
 ## 2026-08-18 — Continuation audit (Claude Code handover doc): live-state verification vs docs, two safe fixes applied
 
 **Goal**: follow-up pass working from a handover brief (`~/Downloads/CLAUDE_CODE_HANDOVER_v3.md`) asking for read-only verification of that same day's `docs/overall-setup.md` claims against actual machine state, before any further changes. Read-only sweep first, then apply only what's unambiguously safe/reversible.

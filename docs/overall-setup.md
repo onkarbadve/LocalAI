@@ -6,7 +6,7 @@ Full current-state reference across both machines, written 2026-08-18 for extern
 
 - ISP: ACT Fibernet / Beam Telecom (Hyderabad, Tarnaka POP). Router: TP-Link Archer AX1500 Wi-Fi 6, `192.168.0.1`, LAN `192.168.0.0/24`.
 - **IPv4**: behind CGNAT. Router's own WAN IP `10.158.62.113` (private) is translated to the shared internet-visible `49.204.165.243`. Nothing can initiate an inbound IPv4 connection without a relay (Tailscale, etc.) — always true, unrelated to anything below.
-- **IPv6**: real, globally-routable, no NAT — prefix `2406:b400:53:1e77::/64` via SLAAC, stable in practice. Every device gets its own directly-reachable global address; this is what drove today's firewall work on both machines (see [network-ipv6-setup.md](network-ipv6-setup.md) for the full detail, summarized below).
+- **IPv6**: real, globally-routable, no NAT — delegated block `2406:b400:53::/48` via SLAAC; the ISP rotates the `/64` subnet ID within that `/48` without notice (confirmed 2026-08-19), so firewall rules key off the `/48`, not a specific `/64`. Every device gets its own directly-reachable global address; this is what drove the 2026-08-18 firewall work on both machines (see [network-ipv6-setup.md](network-ipv6-setup.md) for the full detail, summarized below).
 - Tailscale tailnet `tail2f4a36.ts.net`, MagicDNS on. Members: Fedora laptop (`fedora`, `100.93.33.122`), Pi (`raspberrypi-pihole`, `100.102.227.7`), phone (`a34`, Android).
 
 ---
