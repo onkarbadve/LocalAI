@@ -11,7 +11,7 @@ Network=host
 DNS=127.0.0.1
 Environment=PUID=1000
 Environment=PGID=1000
-Environment=TZ=Etc/UTC
+Environment=TZ=Asia/Kolkata
 Environment=DOTNET_SYSTEM_NET_DISABLEIPV6=true
 Volume=/home/onkar/media-stack/config/sonarr:/config
 Volume=/home/onkar/media-stack/downloads:/downloads

@@ -9,7 +9,7 @@ Image=ghcr.io/flaresolverr/flaresolverr:v3.5.0
 ContainerName=flaresolverr
 Network=host
 DNS=127.0.0.1
-Environment=TZ=Etc/UTC
+Environment=TZ=Asia/Kolkata
 Environment=LOG_LEVEL=info
 Volume=/home/onkar/media-stack/config/flaresolverr:/config
 

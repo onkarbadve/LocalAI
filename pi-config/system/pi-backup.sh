@@ -24,7 +24,10 @@ RETAIN=5   # keep the last 5 local copies; Fedora's pull side keeps its own rete
 
 mkdir -p "$DEST_DIR"
 chmod 700 "$DEST_DIR"   # contains secrets (WiFi PSK, DuckDNS token, app API keys) - owner-only
-rm -rf "$STAGE"
+# sudo: if a prior run died before the chown-back below, $STAGE can be left holding
+# root-owned files (e.g. Prowlarr Sentry envelopes copied in via the sudo rsync in
+# step 1), which an unprivileged rm can't remove.
+sudo -n rm -rf "$STAGE"
 mkdir -p "$STAGE"/{configs,dbs,pihole,quadlet,system,network}
 
 echo "[1/6] App configs (excluding live DB files - those are snapshotted safely below)"
@@ -81,7 +84,7 @@ chmod 600 "$ARCHIVE"
 # Bare filename in the checksum file (not an absolute path) so `sha256sum -c`
 # still works after the archive is pulled to a different machine/directory.
 ( cd "$DEST_DIR" && sha256sum "$(basename "$ARCHIVE")" > "$(basename "$ARCHIVE").sha256" )
-rm -rf "$STAGE"
+sudo -n rm -rf "$STAGE"
 
 # Retention: keep the last N local copies
 ls -1t "$DEST_DIR"/pi-backup-*.tar.gz 2>/dev/null | tail -n +$((RETAIN+1)) | while read -r old; do

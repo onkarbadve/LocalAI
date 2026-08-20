@@ -4,7 +4,6 @@ set -euo pipefail
 DOMAIN="aagaumulga"
 TOKEN_FILE="/etc/duckdns/token"
 STATE_FILE="/var/lib/duckdns/last-ipv6"
-IFACE="wlan0"
 
 if [[ ! -r "$TOKEN_FILE" ]]; then
     echo "duckdns-update: token file $TOKEN_FILE missing or unreadable" >&2
@@ -12,11 +11,27 @@ if [[ ! -r "$TOKEN_FILE" ]]; then
 fi
 TOKEN="$(<"$TOKEN_FILE")"
 
-CURRENT_IP6="$(ip -6 addr show "$IFACE" scope global dynamic 2>/dev/null \
-    | awk '/inet6/{print $2}' | cut -d/ -f1 | head -n1)"
+# Whichever interface is active (the 99-eth0-wlan0-arbiter can switch this, and
+# either radio can be disabled entirely) - prefer the interface currently holding
+# the IPv6 default route, then fall back to checking eth0 and wlan0 directly.
+DEFAULT_IFACE="$(ip -6 route show default 2>/dev/null \
+    | awk '{for (i=1;i<=NF;i++) if ($i=="dev") {print $(i+1); exit}}')"
+CANDIDATES=()
+[[ -n "$DEFAULT_IFACE" ]] && CANDIDATES+=("$DEFAULT_IFACE")
+CANDIDATES+=(eth0 wlan0)
+
+CURRENT_IP6=""
+for IFACE in "${CANDIDATES[@]}"; do
+    ip6="$(ip -6 addr show "$IFACE" scope global dynamic 2>/dev/null \
+        | awk '/inet6/{print $2}' | cut -d/ -f1 | head -n1)"
+    if [[ -n "$ip6" ]]; then
+        CURRENT_IP6="$ip6"
+        break
+    fi
+done
 
 if [[ -z "$CURRENT_IP6" ]]; then
-    echo "duckdns-update: no global IPv6 found on $IFACE" >&2
+    echo "duckdns-update: no global IPv6 found on any of: ${CANDIDATES[*]}" >&2
     exit 1
 fi
 

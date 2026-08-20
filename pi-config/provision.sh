@@ -34,7 +34,11 @@ run() {
 echo "== 1/6: packages =="
 # Idempotent: apt install on an already-installed package is a no-op.
 run sudo apt-get update
-run sudo apt-get install -y podman nftables sqlite3 curl rsync
+run sudo apt-get install -y podman nftables sqlite3 curl rsync zram-tools
+run sudo systemctl disable --now dphys-swapfile 2>/dev/null || true
+run sudo apt-get purge -y dphys-swapfile 2>/dev/null || true
+run sudo cp "$SYSTEM_SRC/zramswap.conf" /etc/default/zramswap
+run sudo systemctl enable --now zramswap
 echo "  NOTE: Caddy and Pi-hole are not plain apt packages on this box - Caddy via its"
 echo "  own apt repo, Pi-hole via the official installer (curl -sSL https://install.pi-hole.net)."
 echo "  Run those interactively per their own docs before continuing if this is a fresh box;"
@@ -73,6 +77,11 @@ run sudo chmod 755 /usr/local/bin/duckdns-update.sh
 run sudo cp "$SYSTEM_SRC/duckdns-update.service" "$SYSTEM_SRC/duckdns-update.timer" /etc/systemd/system/
 echo "  NOTE: duckdns-update.sh needs /etc/duckdns/token (the secret itself, NOT in this"
 echo "  repo) restored from the backup archive before its timer can succeed."
+run sudo cp "$SYSTEM_SRC/99-tailscale-forwarding.conf" /etc/sysctl.d/99-tailscale-forwarding.conf
+run sudo sysctl --system
+echo "  NOTE: this enables IP forwarding for Tailscale subnet routing but does not itself"
+echo "  advertise or approve a route - run 'sudo tailscale set --advertise-routes=192.168.0.0/24'"
+echo "  and approve it at https://login.tailscale.com/admin/machines (per-box, not scripted here)."
 
 echo "== 5/6: this repo's own backup script + timer =="
 run sudo cp "$SYSTEM_SRC/pi-backup.sh" /usr/local/bin/pi-backup.sh

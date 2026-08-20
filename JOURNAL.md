@@ -17,6 +17,163 @@ Older entries below predate this template and stay in their original free-form n
 
 ---
 
+## 2026-08-21 — Pi hardening batch: zram swap, TZ, Caddy headers/logging, subnet router, SSH alias
+
+**Goal**: act on a list of improvement suggestions surfaced after the 2026-08-20 healthcheck;
+verified each claim against the live box before applying anything.
+
+**Changes**:
+- **zram swap**: replaced `dphys-swapfile` (512MB swapfile on the SD card at `/var/swap`,
+  confirmed via `/proc/swaps` before touching it) with `zram-tools` (`ALGO=zstd PERCENT=50`,
+  tracked as `pi-config/system/zramswap.conf`) - keeps swap I/O off the SD card entirely.
+  `provision.sh` updated to install/purge accordingly.
+- **Container timezone**: all 9 Quadlet units had `Environment=TZ=Etc/UTC` (confirmed via
+  grep); changed to `Asia/Kolkata` across all of `pi-config/quadlet/*.container`, deployed,
+  and every container restarted - verified `date`/`TZ` inside the jellyfin container.
+- **Caddy**: `/etc/caddy/Caddyfile` was a bare `reverse_proxy localhost:8096` (confirmed);
+  added HSTS/nosniff/frame-deny/referrer-policy headers and access logging to
+  `/var/log/caddy/jellyfin_access.log` (10MB roll, keep 5) - the log dir already existed,
+  owned by `caddy:caddy`. Validated with `caddy validate` before reload.
+- **duckdns-update.timer**: `OnUnitActiveSec` 3min -> 15min - the 3min interval (confirmed
+  via `systemctl cat`) was unnecessarily aggressive for a dynamic-DNS updater.
+- **Tailscale subnet router**: added `pi-config/system/99-tailscale-forwarding.conf`
+  (`net.ipv4.ip_forward=1`, `net.ipv6.conf.all.forwarding=1`) and ran
+  `tailscale set --advertise-routes=192.168.0.0/24`. Deliberately did NOT enable exit-node -
+  discussed the tradeoff (Pi-hole's DNS benefit is already tailnet-wide via the Global
+  Nameserver regardless of exit-node status; exit-node would add home-upload-bandwidth
+  bottleneck + wider blast radius for no corresponding need today). Route still needs manual
+  approval at https://login.tailscale.com/admin/machines - not done yet.
+- **Fedora `~/.ssh/config`**: `Host raspberrypi pi` pointed `HostName` at `raspberrypi.local`
+  (mDNS), which systemd-resolved doesn't resolve by default - `ssh pi` was failing outright
+  ever since the healthcheck a day earlier had to fall back to the raw Tailscale IP. Changed
+  to `raspberrypi-pihole` (Tailscale MagicDNS name, confirmed resolvable via `getent hosts`);
+  `ssh pi` now works directly.
+
+**Results**: all changes verified live - `zramctl`/`/proc/swaps` show `/dev/zram0` active and
+`/var/swap` gone; all 9 containers report `Asia/Kolkata`; `caddy validate` passed and
+`systemctl is-active caddy` is `active`; `sysctl` shows both forwarding flags `= 1`;
+`ssh pi` resolves and connects.
+
+**Problems**: none - each claim in the suggested list was checked against the live box (swap
+mechanism, TZ envs, Caddyfile contents, MagicDNS resolution) before acting, since the list
+came from an external source, not from this session's own investigation.
+
+**Next steps**: approve the 192.168.0.0/24 route in the Tailscale admin console (can't be
+done from the CLI/this session); watch the next few `duckdns-update.timer` and
+`pi-backup.timer` firings to confirm they stay green.
+
+---
+
+## 2026-08-20 — Pi healthcheck: fixed duckdns-update.sh and pi-backup.sh failures
+
+**Goal**: routine healthcheck on raspberrypi-pihole surfaced two failed systemd units; fix both.
+
+**Changes**:
+- `pi-config/system/duckdns-update.sh`: was hardcoded to `wlan0`, which has been silently
+  failing every run since the WiFi radio was hard-disabled (see prior entry). Now picks the
+  interface holding the IPv6 default route first, falling back to checking `eth0` then
+  `wlan0`, so it survives the arbiter switching interfaces or either radio being disabled.
+- `pi-config/system/pi-backup.sh`: the stage-dir cleanup (`rm -rf "$STAGE"`, both at the
+  start of the run and after archiving) is now `sudo -n rm -rf "$STAGE"`. Root cause: step 1
+  rsyncs container-owned files into `$STAGE/configs` via `sudo`, and the ownership only gets
+  handed back to `onkar` right before archiving; if a run dies before that point (as one did,
+  mid-run, leaving root-owned Prowlarr Sentry `.envelope` files behind), the next run's
+  unprivileged `rm -rf` can't clear the stage and the whole backup fails before it starts.
+- One-off: `sudo rm -rf /home/onkar/backups/.stage` on the Pi to clear the stale root-owned
+  leftovers, then `systemctl reset-failed` on both units.
+
+**Results**: deployed both scripts to `/usr/local/bin/` on the Pi and ran each manually.
+`duckdns-update.sh` found the current global IPv6 and updated `aagaumulga.duckdns.org`.
+`pi-backup.sh` completed end-to-end, producing a 28M archive. Both units show `inactive`
+(not failed) afterward.
+
+**Next steps**: none open; watch the next scheduled timer firings to confirm they stay green.
+
+---
+
+## 2026-08-20 — GPU hang investigation (Aug 19) + EAGLE3 speculative decoding retest
+
+**Goal**: root-cause the hard-poweroff-requiring hang from the previous session, then retry the EAGLE3 speculative decoding attempt that had triggered it.
+
+**Investigation — the Aug 19 "GPU hang"**:
+Journal/kernel logs (`journalctl -b -2`, boot spanning Aug 16 20:09 → Aug 19 18:27) show this was **not** a GPU driver fault — no `i915`/`drm` error, reset, or TDR was ever logged, and `pstore`/`abrt` have no crash artifacts. What happened:
+- **18:04:15** — kernel OOM-killer fires, kills a `python3` process (PID 133437, 8.2GB virtual / 4.48GB RSS) running in a konsole tab. `Free swap = 4kB` at that instant — the 8GB of swap is `zram` (compressed swap living *in* RAM, not disk); the OOM dump shows ~4.5GB of the 16GB RAM was consumed just holding compressed swap pages. Model tensors compress poorly, so the "8GB swap" bought far less real headroom than it looked like.
+- The ~34 `Purging GPU memory, 0 pages freed, 0 pages still pinned` lines right after are a side-effect of the OOM notifier firing (pinned count was 0, pool ~25MB — compositor-sized, not workload-sized), not an independent GPU lockup.
+- **18:04–18:23** — the single OOM kill didn't fully relieve pressure. `kwin_wayland` logs escalating input-lag warnings (timer events up to 4s late, "your system is too slow"), `polkitd` hits a 10s spawn timeout at 18:19:54 — the desktop was thrashing on memory, not instantly frozen.
+- **18:23:02** — last kernel/desktop log line. `tailscaled` (less GPU/interactive-path dependent) keeps logging until 18:27:34, then the boot record ends — hard poweroff followed sometime after.
+- Checked 3 other retained boots with `crash`-tagged endings (`-9`, `-8`, `-7`) for the same OOM+purge signature: none matched. Looks like a one-off overcommit, not a standing config problem.
+
+**Root cause, once traced to the actual work**: the Aug 19 JOURNAL entry only documented a FastDraft/Phi-3-mini speculative-decoding test, but the box was actually also mid-attempt on **real EAGLE3** — `models/Qwen3-8B_eagle3-int8-ov` (int8, 2.0GB draft head) was written at 17:59:38, 5 minutes before the OOM. That attempt paired the EAGLE3 draft head against `Qwen3.5-9B-int4-ov` as target while `ovms-qwen3.5-9b-text.service` was likely still resident with the same 9B model — two copies of ~9B-class weights plus a draft head pushed the 16GB UMA box past its budget.
+
+**The pairing was also wrong, independent of memory**: `Qwen3-8B_eagle3-int8-ov`'s config (`hidden_size=4096`, `vocab_size=151936`, `draft_vocab_size=32000`, single decoder layer) matches `Qwen3-8B-int4-ov` (`hidden_size=4096`, `vocab_size=151936`) exactly. `Qwen3.5-9B-int4-ov` has `vocab_size=248320` — a different tokenizer family. EAGLE3 draft heads consume the target's hidden states directly, so `Qwen3-8B` was always the correct target for this draft head, not `Qwen3.5-9B`.
+
+**EAGLE3 retest, done safely**: `ovms-qwen3.5-9b-text.service` confirmed stopped first; ran under `systemd-run --user --scope -p MemoryMax=12G -p MemoryHigh=10G` so a runaway process would get cleanly OOM-killed instead of thrashing the desktop again. Target `Qwen3-8B-int4-ov` on GPU (4.6GB) + draft `Qwen3-8B_eagle3-int8-ov` on CPU (2.0GB) — comfortably under the ~10GB that was free. 64 tokens, greedy, 3 timed runs:
+
+- **Baseline (GPU, no draft)**: **9.30 tok/s**
+- **EAGLE3 (GPU target + CPU draft)**: **5.18 tok/s** (‑44%)
+
+Output was coherent (not garbled), confirming the corrected pairing is architecturally valid. GPU+GPU draft variant not tested (FastDraft results from Aug 19 showed GPU-draft is worse than CPU-draft on this hardware — same bandwidth-contention mechanism would apply).
+
+**Lessons**:
+- On this Iris Xe UMA box, speculative decoding (FastDraft *and* now EAGLE3) is consistently net-negative on ≤9B-class models — draft/verify overhead and CPU↔GPU sync cost more than the saved forward passes, matching the existing [docs/lessons-learned.md](docs/lessons-learned.md) entry.
+- `zram`-only swap gives much less real headroom under LLM/tensor workloads than its nominal size suggests (poor compression ratio) — don't treat "8GB free swap" as real slack when sizing concurrent model loads on this machine.
+- A `systemd-run --scope -p MemoryMax=` cap around ad-hoc GPU/model-loading scripts is now the standard way to test anything that might overcommit memory on this box — it contained a process cleanly with no desktop impact.
+- Verify draft/target `hidden_size` + `vocab_size` compatibility from `config.json` before loading either model, not after — would have caught the wrong pairing without spending any memory budget.
+
+**Next steps**: none planned — EAGLE3 confirmed net-negative on this hardware for ≤9B models, same as FastDraft. Revisit speculative decoding only for larger/slower models per the existing lessons-learned guidance.
+
+**Addendum, same session: disk cleanup.** Root filesystem (`/`, `nvme0n1p7`, 54GB) was at 93% (4.1GB free). Freed ~15GB, back to 65% (19GB free), all regenerable/concluded-eval items, nothing in production or personal touched:
+- `ovms-qwen3.5-9b-text-cache` podman volume (6.25GB GPU compile cache — auto-rebuilds on next OVMS start).
+- Concluded OpenVINO eval models: `Phi-3-mini-4k-instruct-int4-ov` + `Phi-3-mini-FastDraft-50M-int8-ov` (2.15GB, FastDraft eval concluded) and `Qwen3-8B-int4-ov` + `Qwen3-8B_eagle3-int8-ov` (6.6GB, EAGLE3 eval just concluded above). **Deleting `Qwen3-8B-int4-ov` also breaks `start-ovms-qwen3-8b.sh`** (port 8084) until re-downloaded — noted in SETUP.md's OVMS table.
+- Regenerable caches: `~/.cache/pip`, `~/.cache/google-chrome`, `~/.codex/.tmp`, `npm cache clean --force`.
+- Kept: `Qwen3.5-9B-int4-ov` (still under active evaluation), `open-webui-data` volume (real chat history, not cache), `recovered-core2duo-2015/` (personal recovered data).
+- Not run (needs sudo, handed to user rather than run directly per this session's convention): removing old kernels (`7.1.5-200`, `7.1.5-201`, ~450MB) and `dnf clean all` (~550MB) — still available if wanted.
+
+---
+
+## 2026-08-19 — OpenVINO and OVMS update: nightly wheels and container refreshed, benchmarked
+
+**Goal**: audit upstream OpenVINO / OVMS status, update local components to latest releases/nightlies, and benchmark text and vision pipelines.
+
+**Changes**:
+- Upgraded `~/LocalAI/ov-env` nightly Python wheels (`openvino`, `openvino-genai`, `openvino-tokenizers`) from `2026.4.0.dev20260803` to `2026.4.0.dev20260818` via OpenVINO's nightly index.
+- Pulled latest `docker.io/openvino/model_server:weekly` image via Podman (build `2026-08-17`, digest `sha256:7eb60804f...`, image ID `7545b652932a`).
+- Verified Fedora 44 Intel driver RPMs (`intel-compute-runtime`, `intel-level-zero`, `intel-opencl`) — confirmed up-to-date at `26.22.38646.6-4.fc44`.
+- Started `ovms-qwen3.5-9b-text.service` and benchmarked streaming endpoint alongside standalone `test_ov_qwen.py`.
+
+**Results**:
+- **Direct `openvino_genai` (`test_ov_qwen.py` on GPU, nightly 20260818)**:
+  - Text-only: **9.94 ± 0.34 tok/s**, TTFT **424.1 ± 5.2 ms** (1 warmup + 5 timed runs, greedy).
+  - Vision (image input): **9.88 ± 0.27 tok/s**, TTFT **10338.9 ± 93.8 ms** (~10.3s vision encoder pass).
+  - Vision quality check: Model output on GPU continues to hallucinate on `docs/images/architecture.png` (describing "waffle/foam pads"), confirming **openvino#37223 remains open** and affirming the necessity of keeping the CPU/GPU instance split for VLMs.
+- **OVMS Serving (`start-ovms-qwen3.5-9b-text.sh`, weekly build 2026-08-17)**:
+  - Initialized cleanly to `AVAILABLE` on GPU in ~23s (`--cache_dir` warm restart).
+  - Benchmarked `/v3/chat/completions` (streaming, unique nonces, 1 warmup + 5 timed runs): **9.50 ± 0.19 tok/s**, TTFT **760.0 ± 28.8 ms**.
+  - `reasoning_content` delta streaming works as expected.
+- Updated `docs/benchmarks.md` with new measurements.
+
+**Addendum, same session: Speculative decoding (FastDraft/EAGLE pipeline) evaluated on Intel Iris Xe.**
+Tested `openvino_genai.draft_model` + `LLMPipeline` speculative decoding using Intel's officially paired `Phi-3-mini-4k-instruct-int4-ov` (3.8B, 2.0GB) and `Phi-3-mini-FastDraft-50M-int8-ov` (50M, 55MB) draft head.
+
+**Results (1 warmup + 5 timed runs, greedy decoding, 128 tokens max)**:
+- **Baseline (GPU, No Draft)**: **`19.07 ± 0.06 tok/s`**
+- **Speculative (GPU Main + GPU Draft, `assistant_tokens=5`)**: **`7.73 ± 0.01 tok/s`** (-59.5% slowdown)
+- **Speculative (GPU Main + CPU Draft, `assistant_tokens=5`)**: **`8.82 ± 0.03 tok/s`** (-53.8% slowdown)
+- **Draft token sweep (`num_assistant_tokens` on CPU draft)**:
+  - `assistant_tokens=1`: **`12.27 tok/s`**
+  - `assistant_tokens=2`: **`11.40 tok/s`**
+  - `assistant_tokens=3`: **`10.91 tok/s`**
+
+**Root cause / Takeaway**:
+On a UMA iGPU architecture (Intel Iris Xe with shared ~40–50 GB/s system DDR5 memory bandwidth), speculative decoding is **strictly net-negative on small/fast base models (3B–4B)**.
+1. `Phi-3-mini` is already fast (~19.1 tok/s baseline). The latency of executing the draft model iterations + synchronization overhead exceeds the latency saved during verification.
+2. In UMA systems, the draft model and target model compete for the *same* physical memory bandwidth. Unlike dGPUs with massive memory bandwidth (where compute is cheap and memory read batching saves wall time), UMA bandwidth contention degrades sequential token speculation.
+3. FastDraft/EAGLE requires strict tokenizer equivalence (`are_tokenizers_equal` assertion in `fast_draft_strategy.cpp`), prohibiting arbitrary cross-architecture drafting (e.g. Qwen2-0.5B draft with Qwen3.5-9B fails with mismatched tokenizer error).
+
+**Next steps**: retain direct autoregressive generation on iGPU for models <10B; speculative decoding is only worth revisiting on very large/quantized models (e.g. 30B+ MoE) where baseline autoregressive token generation falls below ~2 tok/s.
+
+---
+
 ## 2026-08-19 — Pi charger swap: power/throughput verification, moved to wired Ethernet
 
 **Goal**: user connected a different power charger to the Pi; verify it isn't undervolting, then confirm services and network health afterward.

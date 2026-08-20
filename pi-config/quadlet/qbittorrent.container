@@ -11,7 +11,7 @@ Network=host
 DNS=127.0.0.1
 Environment=PUID=1000
 Environment=PGID=1000
-Environment=TZ=Etc/UTC
+Environment=TZ=Asia/Kolkata
 Environment=WEBUI_PORT=8090
 Volume=/home/onkar/media-stack/config/qbittorrent:/config
 Volume=/home/onkar/media-stack/downloads:/downloads

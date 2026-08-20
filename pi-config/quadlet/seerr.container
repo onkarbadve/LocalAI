@@ -11,7 +11,7 @@ Network=host
 DNS=127.0.0.1
 UserNS=keep-id
 PodmanArgs=--init
-Environment=TZ=Etc/UTC
+Environment=TZ=Asia/Kolkata
 Volume=/home/onkar/media-stack/config/jellyseerr:/app/config
 
 [Service]

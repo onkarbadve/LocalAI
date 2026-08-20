@@ -3,7 +3,7 @@ Description=Run duckdns-update periodically
 
 [Timer]
 OnBootSec=30s
-OnUnitActiveSec=3min
+OnUnitActiveSec=15min
 Persistent=true
 
 [Install]
