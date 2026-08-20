@@ -17,6 +17,39 @@ Older entries below predate this template and stay in their original free-form n
 
 ---
 
+## 2026-08-21 — Sync stale nftables.conf: repo still had the pre-766a6ea /64 rule
+
+**Goal**: answered a question about IPv6 address history on the Pi (how many distinct global
+addresses seen, any prefix changes) and found the tracked `pi-config/system/nftables.conf`
+had drifted from what's actually live.
+
+**Changes**: `pi-config/system/nftables.conf`'s `ip6 saddr` accept rule was still
+`2406:b400:53:1e77::/64` - the original rule from commit `5f23f44`. Commit `766a6ea` fixed
+this live on the Pi (widened to `2406:b400:53::/48`, since the ISP re-delegates the /64
+subnet-id under a stable /48) but that fix was never synced back into this repo. Pulled the
+live `/etc/nftables.conf` and confirmed it was a single-line difference; applied it here.
+
+**Results**: confirmed via `diff` there is now exactly one line different from live (none -
+files match). `nft -c -f` validation happens automatically in `provision.sh` already.
+
+**Problems**: this is a process gap, not a one-off - a fix applied directly on the Pi (rather
+than edited in the repo and redeployed) can silently drift from what `provision.sh` would lay
+down on a rebuilt box. Worth deploying config changes repo-first going forward (edit here,
+`scp`/deploy to the Pi) rather than the reverse, per the pattern already used for
+duckdns-update.sh/pi-backup.sh earlier this week.
+
+**IPv6 history observed while investigating** (persistent journal only retains back to Aug 15):
+one DuckDNS-recorded address change (Aug 19 09:50 -> `2406:b400:53:481:c284:f93e:9f28:438a`)
+plus the current live address (`2406:b400:53:481:ae6:338f:2fcf:16ef`, picked up by the
+2026-08-20 duckdns-update.sh fix) - both within the same `/64`, i.e. just SLAAC
+privacy-address rotation, not a prefix change. The actual /64 subnet-id change (`:1e77:` ->
+`:481:`) predates this window and is exactly what `766a6ea` already anticipated by
+firewalling on the /48 instead.
+
+**Next steps**: none open.
+
+---
+
 ## 2026-08-21 — Pi hardening batch: zram swap, TZ, Caddy headers/logging, subnet router, SSH alias
 
 **Goal**: act on a list of improvement suggestions surfaced after the 2026-08-20 healthcheck;
