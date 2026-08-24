@@ -17,6 +17,20 @@ Older entries below predate this template and stay in their original free-form n
 
 ---
 
+## 2026-08-24 — Package power-limit (RAPL PL1/PL2) sweep, persistent Sweet Spot profile
+
+**Goal**: Determine whether raising the i5-12500H's stock 40W PL1 cap improves LLM inference performance, and settle on a persistent profile.
+
+**Changes**: Benchmarked 3 RAPL profiles (Stock 40W/80W, Sweet Spot 48W/90W, Max Practical 55W/95W) via `bench_and_monitor.py` — synchronized 250ms telemetry + 5 timed Qwen3.5-9B (OVMS) runs per profile. Added `power-profile.sh` (repo root) to apply any of the three profiles on demand, and `localai-power-profile.service` (repo root, systemd oneshot) to reapply Sweet Spot automatically at boot. Full comparison table, rationale, and the install command are in [docs/benchmarks.md](docs/benchmarks.md#package-power-limit-rapl-pl1pl2-profile-sweep) and [docs/kernel-and-driver-tuning.md §F](docs/kernel-and-driver-tuning.md#f-package-power-limit-tuning-rapl-pl1pl2). Raw CSV/JSON telemetry moved to `logs/power-profile-bench/`.
+
+**Results**: Stock's 40W cap throttles PL1 48.1% of the time under normal load, holding the GPU to ~1233MHz average instead of its pinned 1300MHz. Sweet Spot (48W/90W) cuts that to 38.5% throttling and ~27–38% faster model load (19.03s → 11.84s), with 55W/95W within noise of 48W on every metric except a ~9ms edge on one load-time run. Token generation itself is flat (~10.4 tok/s) across all three profiles — confirms steady-state decode is memory-bus bound, not power bound, on this hardware. Thermals stayed safe throughout (96°C peak, 0% thermal throttling at all three profiles).
+
+**Lessons**: These RAPL/GPU-freq/EPP tunables are transient sysfs writes with no OS-level persistence of their own — a tmpfiles.d entry works for single static writes (as used for THP/HWP tuning in §C/D) but a real "profile" (multiple related values, needs to be one atomic-ish operation, occasionally re-applied mid-session) is cleaner as a script + oneshot service than several tmpfiles.d lines.
+
+**Next steps**: `localai-power-profile.service` still needs to be installed and enabled (`sudo systemctl enable --now`, see §F) for Sweet Spot to actually become the boot default — until then it's applied only for the current session (already live: currently running Max Practical from the last test run in this session). `power-profile.sh max` remains a manual opt-in for heavy builds/long prefill.
+
+---
+
 ## 2026-08-21 — Sync stale nftables.conf: repo still had the pre-766a6ea /64 rule
 
 **Goal**: answered a question about IPv6 address history on the Pi (how many distinct global

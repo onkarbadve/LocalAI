@@ -1,0 +1,14 @@
+[Unit]
+Description=Apply LocalAI "sweet spot" package power-limit profile (48W PL1 / 90W PL2)
+# RAPL powercap and drm sysfs are exposed by their driver modules very early,
+# but require them to be present — wait for basic sysinit before running.
+After=sysinit.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/home/onkar/LocalAI/power-profile.sh sweet
+
+[Install]
+WantedBy=multi-user.target

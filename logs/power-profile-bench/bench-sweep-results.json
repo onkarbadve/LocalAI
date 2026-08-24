@@ -1,0 +1,68 @@
+[
+  {
+    "name": "q8_0 | ub=512 (Standard)",
+    "ctk": "q8_0",
+    "ctv": "q8_0",
+    "ub": 512,
+    "pp_mean": 133.94,
+    "pp_std": 1.43,
+    "tg_mean": 10.61,
+    "tg_std": 0.01,
+    "rss_mb": 267.9
+  },
+  {
+    "name": "q8_0 | ub=256",
+    "ctk": "q8_0",
+    "ctv": "q8_0",
+    "ub": 256,
+    "pp_mean": 131.08,
+    "pp_std": 0.24,
+    "tg_mean": 10.78,
+    "tg_std": 0.01,
+    "rss_mb": 260.2
+  },
+  {
+    "name": "q8_0 | ub=1024",
+    "ctk": "q8_0",
+    "ctv": "q8_0",
+    "ub": 1024,
+    "pp_mean": 132.48,
+    "pp_std": 0.26,
+    "tg_mean": 10.59,
+    "tg_std": 0.0,
+    "rss_mb": 268.0
+  },
+  {
+    "name": "q4_0 | ub=512",
+    "ctk": "q4_0",
+    "ctv": "q4_0",
+    "ub": 512,
+    "pp_mean": 132.08,
+    "pp_std": 2.53,
+    "tg_mean": 10.63,
+    "tg_std": 0.01,
+    "rss_mb": 231.3
+  },
+  {
+    "name": "q4_0 | ub=256",
+    "ctk": "q4_0",
+    "ctv": "q4_0",
+    "ub": 256,
+    "pp_mean": 133.53,
+    "pp_std": 0.23,
+    "tg_mean": 10.72,
+    "tg_std": 0.1,
+    "rss_mb": 214.7
+  },
+  {
+    "name": "q4_0 | ub=1024",
+    "ctk": "q4_0",
+    "ctv": "q4_0",
+    "ub": 1024,
+    "pp_mean": 134.19,
+    "pp_std": 0.11,
+    "tg_mean": 10.93,
+    "tg_std": 0.01,
+    "rss_mb": 222.5
+  }
+]
